@@ -102,7 +102,7 @@ mediapipe_proto_library(
 
 cc_library(
     name = "ssd_anchors_calculator",
-    srcs = ["ssd_anchors_calculator.cc"],
+    hdrs = ["ssd_anchors_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":ssd_anchors_calculator_cc_proto",
@@ -282,7 +282,7 @@ cc_library(
 
 cc_library(
     name = "tflite_model_calculator",
-    srcs = ["tflite_model_calculator.cc"],
+    hdrs = ["tflite_model_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         "//mediapipe/framework:calculator_framework",

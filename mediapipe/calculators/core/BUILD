@@ -170,7 +170,6 @@ cc_test(
 
 cc_library(
     name = "begin_loop_calculator",
-    srcs = ["begin_loop_calculator.cc"],
     hdrs = ["begin_loop_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
@@ -193,7 +192,6 @@ cc_library(
 
 cc_library(
     name = "end_loop_calculator",
-    srcs = ["end_loop_calculator.cc"],
     hdrs = ["end_loop_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
@@ -347,7 +345,6 @@ cc_test(
 
 cc_library(
     name = "clip_vector_size_calculator",
-    srcs = ["clip_vector_size_calculator.cc"],
     hdrs = ["clip_vector_size_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
@@ -669,7 +666,7 @@ cc_test(
 
 cc_library(
     name = "previous_loopback_calculator",
-    srcs = ["previous_loopback_calculator.cc"],
+    hdrs = ["previous_loopback_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         "//mediapipe/framework:calculator_framework",
@@ -685,7 +682,7 @@ cc_library(
 
 cc_library(
     name = "flow_limiter_calculator",
-    srcs = ["flow_limiter_calculator.cc"],
+    hdrs = ["flow_limiter_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":flow_limiter_calculator_cc_proto",
@@ -897,7 +894,6 @@ cc_test(
 
 cc_library(
     name = "split_vector_calculator",
-    srcs = ["split_vector_calculator.cc"],
     hdrs = ["split_vector_calculator.h"],
     copts = select({
         "//mediapipe:apple": [
@@ -923,7 +919,7 @@ cc_library(
         "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",
     ] + select({
         "//mediapipe/gpu:disable_gpu": [],
-        "//mediapipe:ios": [],
+        "//mediapipe:ios_gpu": [],
         "//conditions:default": [
             "@org_tensorflow//tensorflow/lite/delegates/gpu/gl:gl_buffer",
         ],
@@ -1060,7 +1056,7 @@ cc_test(
 
 cc_library(
     name = "gate_calculator",
-    srcs = ["gate_calculator.cc"],
+    hdrs = ["gate_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":gate_calculator_cc_proto",

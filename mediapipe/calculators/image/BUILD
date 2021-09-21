@@ -447,7 +447,7 @@ cc_library(
 
 cc_library(
     name = "image_properties_calculator",
-    srcs = ["image_properties_calculator.cc"],
+    hdrs = ["image_properties_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         "//mediapipe/framework/api2:node",

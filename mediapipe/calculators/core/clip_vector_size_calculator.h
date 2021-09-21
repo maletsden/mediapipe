@@ -23,6 +23,9 @@
 #include "mediapipe/framework/port/canonical_errors.h"
 #include "mediapipe/framework/port/ret_check.h"
 #include "mediapipe/framework/port/status.h"
+#include "mediapipe/framework/calculator_framework.h"
+#include "mediapipe/framework/formats/detection.pb.h"
+#include "mediapipe/framework/formats/rect.pb.h"
 
 namespace mediapipe {
 
@@ -141,6 +144,14 @@ class ClipVectorSizeCalculator : public CalculatorBase {
  private:
   int max_vec_size_ = 0;
 };
+
+    typedef ClipVectorSizeCalculator<::mediapipe::NormalizedRect>
+            ClipNormalizedRectVectorSizeCalculator;
+    REGISTER_CALCULATOR(ClipNormalizedRectVectorSizeCalculator);
+
+    typedef ClipVectorSizeCalculator<::mediapipe::Detection>
+            ClipDetectionVectorSizeCalculator;
+    REGISTER_CALCULATOR(ClipDetectionVectorSizeCalculator);
 
 }  // namespace mediapipe
 

@@ -19,10 +19,13 @@
 
 #include "mediapipe/framework/calculator_base.h"
 
+#define CONCAT_STATIC_VARS_INNER(var1, var2) var1##_##var2##_
+#define CONCAT_STATIC_VARS(var1, var2) \
+  CONCAT_STATIC_VARS_INNER(var1, var2)
+
 // Macro for registering calculators.
 #define REGISTER_CALCULATOR(name)                                       \
   REGISTER_FACTORY_FUNCTION_QUALIFIED(                                  \
       mediapipe::CalculatorBaseRegistry, calculator_registration, name, \
-      absl::make_unique<mediapipe::internal::CalculatorBaseFactoryFor<name>>)
-
+      absl::make_unique<mediapipe::internal::CalculatorBaseFactoryFor<name>>);
 #endif  // MEDIAPIPE_FRAMEWORK_CALCULATOR_REGISTRY_H_

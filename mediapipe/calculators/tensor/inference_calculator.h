@@ -21,11 +21,13 @@
 #include <vector>
 
 #include "absl/memory/memory.h"
+#include "absl/strings/string_view.h"
 #include "mediapipe/calculators/tensor/inference_calculator.pb.h"
 #include "mediapipe/framework/api2/node.h"
 #include "mediapipe/framework/calculator_framework.h"
 #include "mediapipe/framework/formats/tensor.h"
 #include "mediapipe/framework/port/ret_check.h"
+#include "mediapipe/framework/tool/subgraph_expansion.h"
 #include "mediapipe/util/tflite/tflite_model_loader.h"
 #include "tensorflow/lite/error_reporter.h"
 #include "tensorflow/lite/interpreter.h"
@@ -125,6 +127,46 @@ struct InferenceCalculatorMetal : public InferenceCalculator {
 struct InferenceCalculatorCpu : public InferenceCalculator {
   static constexpr char kCalculatorName[] = "InferenceCalculatorCpu";
 };
+
+class InferenceCalculatorSelectorImpl
+        : public SubgraphImpl<InferenceCalculatorSelector,
+                InferenceCalculatorSelectorImpl> {
+public:
+    absl::StatusOr<CalculatorGraphConfig> GetConfig(
+            const CalculatorGraphConfig::Node& subgraph_node) {
+        const auto& options =
+                Subgraph::GetOptions<::mediapipe::InferenceCalculatorOptions>(
+                        subgraph_node);
+        std::vector<absl::string_view> impls;
+        const bool should_use_gpu =
+                !options.has_delegate() ||  // Use GPU delegate if not specified
+                (options.has_delegate() && options.delegate().has_gpu());
+        if (should_use_gpu) {
+            impls.emplace_back("Metal");
+            impls.emplace_back("Gl");
+        }
+        impls.emplace_back("Cpu");
+        for (const auto& suffix : impls) {
+            const auto impl = absl::StrCat("InferenceCalculator", suffix);
+            if (!mediapipe::CalculatorBaseRegistry::IsRegistered(impl)) continue;
+            CalculatorGraphConfig::Node impl_node = subgraph_node;
+            impl_node.set_calculator(impl);
+            return tool::MakeSingleNodeGraph(std::move(impl_node));
+        }
+        return absl::UnimplementedError("no implementation available");
+    }
+};
+
+absl::StatusOr<Packet<TfLiteModelPtr>> InferenceCalculator::GetModelAsPacket(
+        CalculatorContext* cc) {
+    const auto& options = cc->Options<mediapipe::InferenceCalculatorOptions>();
+    if (!options.model_path().empty()) {
+        return TfLiteModelLoader::LoadFromPath(options.model_path());
+    }
+    if (!kSideInModel(cc).IsEmpty()) return kSideInModel(cc);
+    return absl::Status(mediapipe::StatusCode::kNotFound,
+                        "Must specify TFLite model as path or loaded model.");
+}
 
 }  // namespace api2
 }  // namespace mediapipe

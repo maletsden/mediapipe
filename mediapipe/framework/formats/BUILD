@@ -304,14 +304,14 @@ cc_library(
             "//mediapipe/gpu:gpu_buffer_format",
             "//mediapipe/gpu:gl_texture_buffer",
         ],
-        "//mediapipe:ios": [
+        "//mediapipe:ios_gpu": [
             "//mediapipe/gpu:gpu_buffer",
             "//mediapipe/gpu:gpu_buffer_format",
         ],
         "//mediapipe/gpu:disable_gpu": [],
     }) + select({
         "//conditions:default": [],
-        "//mediapipe:apple": [
+        "//mediapipe:apple_gpu": [
             "//mediapipe/objc:CFHolder",
             "//mediapipe/objc:util",
         ],

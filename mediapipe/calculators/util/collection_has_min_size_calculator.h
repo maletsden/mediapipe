@@ -22,6 +22,9 @@
 #include "mediapipe/framework/port/canonical_errors.h"
 #include "mediapipe/framework/port/ret_check.h"
 #include "mediapipe/framework/port/status.h"
+#include "mediapipe/framework/formats/classification.pb.h"
+#include "mediapipe/framework/formats/landmark.pb.h"
+#include "mediapipe/framework/formats/rect.pb.h"
 
 namespace mediapipe {
 
@@ -89,6 +92,21 @@ class CollectionHasMinSizeCalculator : public CalculatorBase {
  private:
   int min_size_ = 0;
 };
+
+    typedef CollectionHasMinSizeCalculator<std::vector<mediapipe::NormalizedRect>>
+    NormalizedRectVectorHasMinSizeCalculator;
+    REGISTER_CALCULATOR(NormalizedRectVectorHasMinSizeCalculator);
+
+    typedef CollectionHasMinSizeCalculator<
+            std::vector<mediapipe::NormalizedLandmarkList>>
+    NormalizedLandmarkListVectorHasMinSizeCalculator;
+    REGISTER_CALCULATOR(NormalizedLandmarkListVectorHasMinSizeCalculator);
+
+    typedef CollectionHasMinSizeCalculator<
+            std::vector<mediapipe::ClassificationList>>
+    ClassificationListVectorHasMinSizeCalculator;
+    REGISTER_CALCULATOR(ClassificationListVectorHasMinSizeCalculator);
+
 
 }  // namespace mediapipe
 

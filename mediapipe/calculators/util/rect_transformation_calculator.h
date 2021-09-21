@@ -22,11 +22,6 @@ namespace mediapipe {
 
 namespace {
 
-constexpr char kNormRectTag[] = "NORM_RECT";
-constexpr char kNormRectsTag[] = "NORM_RECTS";
-constexpr char kRectTag[] = "RECT";
-constexpr char kRectsTag[] = "RECTS";
-constexpr char kImageSizeTag[] = "IMAGE_SIZE";
 
 // Wraps around an angle in radians to within -M_PI and M_PI.
 inline float NormalizeRadians(float angle) {
@@ -69,6 +64,12 @@ class RectTransformationCalculator : public CalculatorBase {
   void TransformRect(Rect* rect);
   void TransformNormalizedRect(NormalizedRect* rect, int image_width,
                                int image_height);
+    constexpr static char kNormRectTag[] = "NORM_RECT";
+    constexpr static char kNormRectsTag[] = "NORM_RECTS";
+    constexpr static char kRectTag[] = "RECT";
+    constexpr static char kRectsTag[] = "RECTS";
+    constexpr static char kImageSizeTag[] = "IMAGE_SIZE";
+
 };
 REGISTER_CALCULATOR(RectTransformationCalculator);
 

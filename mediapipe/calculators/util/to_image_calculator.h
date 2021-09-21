@@ -28,13 +28,6 @@
 #endif  // !MEDIAPIPE_DISABLE_GPU
 
 namespace mediapipe {
-
-namespace {
-constexpr char kImageFrameTag[] = "IMAGE_CPU";
-constexpr char kGpuBufferTag[] = "IMAGE_GPU";
-constexpr char kImageTag[] = "IMAGE";
-}  // namespace
-
 // A calculator for converting from legacy MediaPipe datatypes into a
 // unified image container.
 //
@@ -70,6 +63,11 @@ class ToImageCalculator : public CalculatorBase {
 #if !MEDIAPIPE_DISABLE_GPU
   mediapipe::GlCalculatorHelper gpu_helper_;
 #endif  // !MEDIAPIPE_DISABLE_GPU
+
+  constexpr static char kImageFrameTag[] = "IMAGE_CPU";
+  constexpr static char kGpuBufferTag[] = "IMAGE_GPU";
+  constexpr static char kImageTag[] = "IMAGE";
+
 };
 REGISTER_CALCULATOR(ToImageCalculator);
 
