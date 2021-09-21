@@ -74,6 +74,12 @@ public:
   };
 };
 
+    typedef CountingVectorSizeCalculator<
+            std::vector<::mediapipe::NormalizedLandmarkList>>
+    CountingNormalizedLandmarkListVectorSizeCalculator;
+
+    REGISTER_CALCULATOR(CountingNormalizedLandmarkListVectorSizeCalculator);
+
 } // namespace mediapipe
 
 #endif // MEDIAPIPE_CALCULATORS_UTIL_COUNTING_VECTOR_SIZE_CALCULATOR_H

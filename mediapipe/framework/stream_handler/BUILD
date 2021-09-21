@@ -94,7 +94,6 @@ cc_library(
 
 cc_library(
     name = "default_input_stream_handler",
-    srcs = ["default_input_stream_handler.cc"],
     hdrs = ["default_input_stream_handler.h"],
     visibility = ["//visibility:public"],
     deps = [
@@ -130,7 +129,7 @@ cc_library(
 
 cc_library(
     name = "immediate_input_stream_handler",
-    srcs = ["immediate_input_stream_handler.cc"],
+    hdrs = ["immediate_input_stream_handler.h"],
     visibility = ["//visibility:public"],
     deps = [
         "//mediapipe/framework:input_stream_handler",
@@ -140,7 +139,6 @@ cc_library(
 
 cc_library(
     name = "in_order_output_stream_handler",
-    srcs = ["in_order_output_stream_handler.cc"],
     hdrs = ["in_order_output_stream_handler.h"],
     visibility = ["//visibility:public"],
     deps = [

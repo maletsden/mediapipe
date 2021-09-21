@@ -23,11 +23,21 @@
 #include "mediapipe/framework/port/canonical_errors.h"
 #include "mediapipe/framework/port/ret_check.h"
 #include "mediapipe/framework/port/status.h"
+#include "mediapipe/framework/formats/classification.pb.h"
+#include "mediapipe/framework/formats/detection.pb.h"
+#include "mediapipe/framework/formats/landmark.pb.h"
+#include "mediapipe/framework/formats/matrix.h"
+#include "mediapipe/framework/formats/rect.pb.h"
+#include "mediapipe/framework/formats/tensor.h"
 #include "mediapipe/util/resource_util.h"
 #include "tensorflow/lite/error_reporter.h"
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model.h"
+
+#if !defined(MEDIAPIPE_DISABLE_GL_COMPUTE)
+#include "tensorflow/lite/delegates/gpu/gl/gl_buffer.h"
+#endif  // !defined(MEDIAPIPE_DISABLE_GL_COMPUTE)
 
 namespace mediapipe {
 
@@ -248,6 +258,56 @@ class SplitVectorCalculator : public CalculatorBase {
   bool element_only_ = false;
   bool combine_outputs_ = false;
 };
+
+// Example config:
+// node {
+//   calculator: "SplitTfLiteTensorVectorCalculator"
+//   input_stream: "tflitetensor_vector"
+//   output_stream: "tflitetensor_vector_range_0"
+//   output_stream: "tflitetensor_vector_range_1"
+//   options {
+//     [mediapipe.SplitVectorCalculatorOptions.ext] {
+//       ranges: { begin: 0 end: 1 }
+//       ranges: { begin: 1 end: 2 }
+//       element_only: false
+//     }
+//   }
+// }
+    typedef SplitVectorCalculator<TfLiteTensor, false>
+            SplitTfLiteTensorVectorCalculator;
+    REGISTER_CALCULATOR(SplitTfLiteTensorVectorCalculator);
+
+    typedef SplitVectorCalculator<Tensor, true> SplitTensorVectorCalculator;
+    REGISTER_CALCULATOR(SplitTensorVectorCalculator);
+
+    typedef SplitVectorCalculator<mediapipe::NormalizedLandmark, false>
+            SplitLandmarkVectorCalculator;
+    REGISTER_CALCULATOR(SplitLandmarkVectorCalculator);
+
+    typedef SplitVectorCalculator<mediapipe::NormalizedLandmarkList, false>
+            SplitNormalizedLandmarkListVectorCalculator;
+    REGISTER_CALCULATOR(SplitNormalizedLandmarkListVectorCalculator);
+
+    typedef SplitVectorCalculator<mediapipe::NormalizedRect, false>
+            SplitNormalizedRectVectorCalculator;
+    REGISTER_CALCULATOR(SplitNormalizedRectVectorCalculator);
+
+    typedef SplitVectorCalculator<Matrix, false> SplitMatrixVectorCalculator;
+    REGISTER_CALCULATOR(SplitMatrixVectorCalculator);
+
+#if !defined(MEDIAPIPE_DISABLE_GL_COMPUTE)
+    typedef SplitVectorCalculator<::tflite::gpu::gl::GlBuffer, true>
+            MovableSplitGlBufferVectorCalculator;
+    REGISTER_CALCULATOR(MovableSplitGlBufferVectorCalculator);
+#endif
+
+    typedef SplitVectorCalculator<mediapipe::Detection, false>
+            SplitDetectionVectorCalculator;
+    REGISTER_CALCULATOR(SplitDetectionVectorCalculator);
+
+    typedef SplitVectorCalculator<mediapipe::ClassificationList, false>
+            SplitClassificationListVectorCalculator;
+    REGISTER_CALCULATOR(SplitClassificationListVectorCalculator);
 
 }  // namespace mediapipe
 

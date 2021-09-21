@@ -81,7 +81,7 @@ GL_BASE_LINK_OPTS_OSS = GL_BASE_LINK_OPTS + select({
         "-lEGL",
     ],
     "//mediapipe:android": [],
-    "//mediapipe:ios": [],
+    "//mediapipe:ios_gpu": [],
     ":disable_gpu": [],
 })
 

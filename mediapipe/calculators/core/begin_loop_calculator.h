@@ -15,6 +15,8 @@
 #ifndef MEDIAPIPE_CALCULATORS_CORE_BEGIN_LOOP_CALCULATOR_H_
 #define MEDIAPIPE_CALCULATORS_CORE_BEGIN_LOOP_CALCULATOR_H_
 
+#include <vector>
+
 #include "absl/memory/memory.h"
 #include "mediapipe/framework/calculator_context.h"
 #include "mediapipe/framework/calculator_contract.h"
@@ -24,8 +26,13 @@
 #include "mediapipe/framework/port/integral_types.h"
 #include "mediapipe/framework/port/ret_check.h"
 #include "mediapipe/framework/port/status.h"
+#include "mediapipe/framework/formats/detection.pb.h"
+#include "mediapipe/framework/formats/landmark.pb.h"
+#include "mediapipe/framework/formats/matrix.h"
+#include "mediapipe/framework/formats/rect.pb.h"
 
 namespace mediapipe {
+
 
 // Calculator for implementing loops on iterable collections inside a MediaPipe
 // graph.
@@ -159,6 +166,26 @@ class BeginLoopCalculator : public CalculatorBase {
   // Fake timestamps generated per element in collection.
   Timestamp loop_internal_timestamp_ = Timestamp(0);
 };
+
+
+// A calculator to process std::vector<NormalizedLandmarkList>.
+    typedef BeginLoopCalculator<std::vector<::mediapipe::NormalizedLandmarkList>>
+    BeginLoopNormalizedLandmarkListVectorCalculator;
+    REGISTER_CALCULATOR(BeginLoopNormalizedLandmarkListVectorCalculator);
+
+// A calculator to process std::vector<NormalizedRect>.
+    typedef BeginLoopCalculator<std::vector<::mediapipe::NormalizedRect>>
+    BeginLoopNormalizedRectCalculator;
+    REGISTER_CALCULATOR(BeginLoopNormalizedRectCalculator);
+
+// A calculator to process std::vector<Detection>.
+    typedef BeginLoopCalculator<std::vector<::mediapipe::Detection>>
+    BeginLoopDetectionCalculator;
+    REGISTER_CALCULATOR(BeginLoopDetectionCalculator);
+
+// A calculator to process std::vector<Matrix>.
+    typedef BeginLoopCalculator<std::vector<Matrix>> BeginLoopMatrixCalculator;
+    REGISTER_CALCULATOR(BeginLoopMatrixCalculator);
 
 }  // namespace mediapipe
 

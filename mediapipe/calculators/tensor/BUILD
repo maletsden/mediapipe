@@ -45,7 +45,6 @@ mediapipe_proto_library(
 
 cc_library(
     name = "inference_calculator_interface",
-    srcs = ["inference_calculator.cc"],
     hdrs = ["inference_calculator.h"],
     copts = select({
         # TODO: fix tensor.h not to require this, if possible
@@ -121,8 +120,8 @@ cc_library(
 
 cc_library(
     name = "inference_calculator_cpu",
-    srcs = [
-        "inference_calculator_cpu.cc",
+    hdrs = [
+        "inference_calculator_cpu.h",
     ],
     copts = select({
         # TODO: fix tensor.h not to require this, if possible
@@ -163,7 +162,8 @@ cc_library(
         ":inference_calculator_cpu",
     ] + select({
         "//conditions:default": [":inference_calculator_gl_if_compute_shader_available"],
-        "//mediapipe:ios": [":inference_calculator_metal"],
+        "//mediapipe:ios_gpu": [":inference_calculator_metal"],
+        "//mediapipe:ios_cpu": [],
     }),
     alwayslink = 1,
 )
@@ -268,7 +268,7 @@ mediapipe_proto_library(
 
 cc_library(
     name = "tensors_to_detections_calculator",
-    srcs = ["tensors_to_detections_calculator.cc"],
+    hdrs = ["tensors_to_detections_calculator.h"],
     copts = select({
         "//mediapipe:apple": [
             "-x objective-c++",
@@ -331,7 +331,7 @@ mediapipe_proto_library(
 
 cc_library(
     name = "tensors_to_landmarks_calculator",
-    srcs = ["tensors_to_landmarks_calculator.cc"],
+    hdrs = ["tensors_to_landmarks_calculator.h"],
     copts = select({
         "//mediapipe:apple": [
             "-x objective-c++",
@@ -363,7 +363,7 @@ mediapipe_proto_library(
 
 cc_library(
     name = "tensors_to_floats_calculator",
-    srcs = ["tensors_to_floats_calculator.cc"],
+    hdrs = ["tensors_to_floats_calculator.h"],
     copts = select({
         "//mediapipe:apple": [
             "-x objective-c++",
@@ -467,7 +467,7 @@ cc_test(
 
 cc_library(
     name = "image_to_tensor_calculator",
-    srcs = ["image_to_tensor_calculator.cc"],
+    hdrs = ["image_to_tensor_calculator.h"],
     copts = select({
         "//mediapipe:apple": [
             "-x objective-c++",

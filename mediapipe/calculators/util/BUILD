@@ -20,7 +20,6 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "counting_vector_size_calculator",
-    srcs = ["counting_vector_size_calculator.cc"],
     hdrs = ["counting_vector_size_calculator.h"],
     visibility = [
         "//visibility:public",
@@ -343,7 +342,7 @@ cc_library(
 
 cc_library(
     name = "non_max_suppression_calculator",
-    srcs = ["non_max_suppression_calculator.cc"],
+    hdrs = ["non_max_suppression_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":non_max_suppression_calculator_cc_proto",
@@ -360,7 +359,7 @@ cc_library(
 
 cc_library(
     name = "thresholding_calculator",
-    srcs = ["thresholding_calculator.cc"],
+    hdrs = ["thresholding_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":thresholding_calculator_cc_proto",
@@ -388,7 +387,7 @@ cc_library(
 
 cc_library(
     name = "landmarks_to_detection_calculator",
-    srcs = ["landmarks_to_detection_calculator.cc"],
+    hdrs = ["landmarks_to_detection_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":landmarks_to_detection_calculator_cc_proto",
@@ -404,9 +403,6 @@ cc_library(
 
 cc_library(
     name = "detections_to_rects_calculator",
-    srcs = [
-        "detections_to_rects_calculator.cc",
-    ],
     hdrs = [
         "detections_to_rects_calculator.h",
     ],
@@ -427,7 +423,7 @@ cc_library(
 
 cc_library(
     name = "rect_transformation_calculator",
-    srcs = ["rect_transformation_calculator.cc"],
+    hdrs = ["rect_transformation_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":rect_transformation_calculator_cc_proto",
@@ -775,7 +771,7 @@ cc_library(
 
 cc_library(
     name = "detection_projection_calculator",
-    srcs = ["detection_projection_calculator.cc"],
+    hdrs = ["detection_projection_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         "//mediapipe/framework:calculator_framework",
@@ -822,7 +818,7 @@ cc_library(
 
 cc_library(
     name = "landmark_projection_calculator",
-    srcs = ["landmark_projection_calculator.cc"],
+    hdrs = ["landmark_projection_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":landmark_projection_calculator_cc_proto",
@@ -1061,7 +1057,7 @@ mediapipe_proto_library(
 
 cc_library(
     name = "local_file_contents_calculator",
-    srcs = ["local_file_contents_calculator.cc"],
+    hdrs = ["local_file_contents_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":local_file_contents_calculator_cc_proto",
@@ -1106,7 +1102,6 @@ cc_library(
 
 cc_library(
     name = "collection_has_min_size_calculator",
-    srcs = ["collection_has_min_size_calculator.cc"],
     hdrs = ["collection_has_min_size_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
@@ -1151,7 +1146,7 @@ cc_library(
 
 cc_library(
     name = "association_norm_rect_calculator",
-    srcs = ["association_norm_rect_calculator.cc"],
+    hdrs = ["association_norm_rect_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":association_calculator",
@@ -1253,7 +1248,7 @@ cc_library(
 
 cc_library(
     name = "to_image_calculator",
-    srcs = ["to_image_calculator.cc"],
+    hdrs = ["to_image_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         "//mediapipe/framework:calculator_options_cc_proto",

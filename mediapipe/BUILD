@@ -14,6 +14,8 @@
 
 licenses(["notice"])  # Apache 2.0
 
+load("@bazel_skylib//lib:selects.bzl", "selects")
+
 # Note: yes, these need to use "//external:android/crosstool", not
 # @androidndk//:default_crosstool.
 
@@ -91,12 +93,47 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+constraint_setting(name = "ios_config")
+constraint_value(name = "ios_enable_gpu", constraint_setting = "ios_config")
+constraint_value(name = "ios_disable_gpu", constraint_setting = "ios_config")
+
+config_setting(
+    name = "ios_cpu",
+    values = {
+        "crosstool_top": "@bazel_tools//tools/cpp:toolchain",
+        "apple_platform_type": "ios",
+    },
+    constraint_values = [
+        ":ios_disable_gpu",
+    ],
+)
+config_setting(
+    name = "ios_gpu",
+    values = {
+        "crosstool_top": "@bazel_tools//tools/cpp:toolchain",
+        "apple_platform_type": "ios",
+    },
+    constraint_values = [
+        ":ios_enable_gpu",
+    ],
+)
+
 alias(
     name = "apple",
     actual = select({
         ":macos": ":macos",
         ":ios": ":ios",
         "//conditions:default": ":ios",  # Arbitrarily chosen from above.
+    }),
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "apple_gpu",
+    actual = select({
+        ":macos": ":macos",
+        ":ios_gpu": ":ios_gpu",
+        "//conditions:default": ":ios_gpu",  # Arbitrarily chosen from above.
     }),
     visibility = ["//visibility:public"],
 )

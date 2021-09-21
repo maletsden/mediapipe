@@ -224,6 +224,7 @@ class FlowLimiterCalculator : public CalculatorBase {
   std::vector<std::deque<Packet>> input_queues_;
   std::deque<Timestamp> frames_in_flight_;
 };
+
 REGISTER_CALCULATOR(FlowLimiterCalculator);
 
 }  // namespace mediapipe

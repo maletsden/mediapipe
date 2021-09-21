@@ -24,14 +24,6 @@
 
 namespace mediapipe {
 
-namespace {
-
-constexpr char kLandmarksTag[] = "NORM_LANDMARKS";
-constexpr char kRectTag[] = "NORM_RECT";
-constexpr char kProjectionMatrix[] = "PROJECTION_MATRIX";
-
-}  // namespace
-
 // Projects normalized landmarks to its original coordinates.
 // Input:
 //   NORM_LANDMARKS - NormalizedLandmarkList
@@ -226,6 +218,11 @@ class LandmarkProjectionCalculator : public CalculatorBase {
     }
     return absl::OkStatus();
   }
+
+private:
+  constexpr static char kLandmarksTag[] = "NORM_LANDMARKS";
+  constexpr static char kRectTag[] = "NORM_RECT";
+  constexpr static char kProjectionMatrix[] = "PROJECTION_MATRIX";
 };
 REGISTER_CALCULATOR(LandmarkProjectionCalculator);
 

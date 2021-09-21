@@ -25,9 +25,6 @@ namespace mediapipe {
 
 namespace {
 
-constexpr char kDetectionTag[] = "DETECTION";
-constexpr char kNormalizedLandmarksTag[] = "NORM_LANDMARKS";
-
 Detection ConvertLandmarksToDetection(const NormalizedLandmarkList& landmarks) {
   Detection detection;
   LocationData* location_data = detection.mutable_location_data();
@@ -87,6 +84,9 @@ class LandmarksToDetectionCalculator : public CalculatorBase {
 
  private:
   ::mediapipe::LandmarksToDetectionCalculatorOptions options_;
+
+    constexpr static char kDetectionTag[] = "DETECTION";
+    constexpr static char kNormalizedLandmarksTag[] = "NORM_LANDMARKS";
 };
 REGISTER_CALCULATOR(LandmarksToDetectionCalculator);
 

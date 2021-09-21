@@ -15,6 +15,9 @@
 #ifndef MEDIAPIPE_CALCULATORS_CORE_END_LOOP_CALCULATOR_H_
 #define MEDIAPIPE_CALCULATORS_CORE_END_LOOP_CALCULATOR_H_
 
+#include <vector>
+
+
 #include "mediapipe/framework/calculator_context.h"
 #include "mediapipe/framework/calculator_contract.h"
 #include "mediapipe/framework/calculator_framework.h"
@@ -22,6 +25,11 @@
 #include "mediapipe/framework/port/integral_types.h"
 #include "mediapipe/framework/port/ret_check.h"
 #include "mediapipe/framework/port/status.h"
+#include "mediapipe/framework/formats/classification.pb.h"
+#include "mediapipe/framework/formats/landmark.pb.h"
+#include "mediapipe/framework/formats/rect.pb.h"
+#include "mediapipe/util/render_data.pb.h"
+#include "tensorflow/lite/interpreter.h"
 
 namespace mediapipe {
 
@@ -100,6 +108,33 @@ class EndLoopCalculator : public CalculatorBase {
  private:
   std::unique_ptr<IterableT> input_stream_collection_;
 };
+
+    typedef EndLoopCalculator<std::vector<::mediapipe::NormalizedRect>>
+    EndLoopNormalizedRectCalculator;
+    REGISTER_CALCULATOR(EndLoopNormalizedRectCalculator);
+
+    typedef EndLoopCalculator<std::vector<::mediapipe::LandmarkList>>
+    EndLoopLandmarkListVectorCalculator;
+    REGISTER_CALCULATOR(EndLoopLandmarkListVectorCalculator);
+
+    typedef EndLoopCalculator<std::vector<::mediapipe::NormalizedLandmarkList>>
+    EndLoopNormalizedLandmarkListVectorCalculator;
+    REGISTER_CALCULATOR(EndLoopNormalizedLandmarkListVectorCalculator);
+
+    typedef EndLoopCalculator<std::vector<bool>> EndLoopBooleanCalculator;
+    REGISTER_CALCULATOR(EndLoopBooleanCalculator);
+
+    typedef EndLoopCalculator<std::vector<::mediapipe::RenderData>>
+    EndLoopRenderDataCalculator;
+    REGISTER_CALCULATOR(EndLoopRenderDataCalculator);
+
+    typedef EndLoopCalculator<std::vector<::mediapipe::ClassificationList>>
+    EndLoopClassificationListCalculator;
+    REGISTER_CALCULATOR(EndLoopClassificationListCalculator);
+
+    typedef EndLoopCalculator<std::vector<TfLiteTensor>> EndLoopTensorCalculator;
+    REGISTER_CALCULATOR(EndLoopTensorCalculator);
+
 
 }  // namespace mediapipe
 
