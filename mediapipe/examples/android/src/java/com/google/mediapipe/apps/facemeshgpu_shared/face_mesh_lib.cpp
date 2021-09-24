@@ -12,7 +12,9 @@ MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
 }
 
 absl::Status
-MPFaceMeshDetector::InitFaceMeshDetector(int numFaces, {
+MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
+                                         const char *face_detection_model_path,
+                                         const char *face_landmark_model_path) {
     numFaces = std::max(numFaces, 1);
 
     if (face_detection_model_path == nullptr) {
@@ -46,7 +48,7 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces, {
 
     LOG(INFO) << "Start running the calculator graph.";
 
-    ASSIGN_OR_RETURN(mediapipe::OutputStreamPolle landmarks_poller,
+    ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller landmarks_poller,
                      graph.AddOutputStreamPoller(kOutputStream_landmarks));
     ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller face_count_poller,
                      graph.AddOutputStreamPoller(kOutputStream_faceCount));
@@ -170,14 +172,13 @@ void MPFaceMeshDetector::DetectFaces(const cv::Mat &camera_frame,
     }
 }
 
-absl::Status MPFaceMeshDetector::DetectLandmarksWithStatus(
-        cv::Point2f **multi_face_landmarks) {
+absl::Status MPFaceMeshDetector::DetectLandmarksWithStatus(cv::Point2f **multi_face_landmarks) {
 
     if (face_landmarks_packet.IsEmpty()) {
         return absl::CancelledError("Face landmarks packet is empty.");
     }
 
-    auto &face_landmarks = face_landmarks_packet
+    auto &face_landmarks = face_landmarks_packet.Get<::std::vector<::mediapipe::NormalizedLandmarkList>>();
 
     const auto image_width_f = static_cast<float>(image_width);
     const auto image_height_f = static_cast<float>(image_height);
@@ -203,14 +204,12 @@ absl::Status MPFaceMeshDetector::DetectLandmarksWithStatus(
     return absl::OkStatus();
 }
 
-absl::Status MPFaceMeshDetector::DetectLandmarksWithStatus(
-        cv::Point3f **multi_face_landmarks) {
-
+absl::Status MPFaceMeshDetector::DetectLandmarksWithStatus(cv::Point3f **multi_face_landmarks) {
     if (face_landmarks_packet.IsEmpty()) {
         return absl::CancelledError("Face landmarks packet is empty.");
     }
 
-    auto &face_landmarks = face_landmarks_packet
+    auto &face_landmarks = face_landmarks_packet.Get<::std::vector<::mediapipe::NormalizedLandmarkList>>();
 
     const auto image_width_f = static_cast<float>(image_width);
     const auto image_height_f = static_cast<float>(image_height);

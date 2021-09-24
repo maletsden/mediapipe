@@ -42,8 +42,9 @@ class MPFaceMeshDetector {
         absl::Status DetectFacesWithStatus(const cv::Mat &camera_frame,
                                            cv::Rect *multi_face_bounding_boxes,
                                            int *numFaces);
-    
-    
+        absl::Status DetectLandmarksWithStatus(cv::Point2f **multi_face_landmarks);
+        absl::Status DetectLandmarksWithStatus(cv::Point3f **multi_face_landmarks);
+
         static constexpr auto kInputStream = "input_video";
         static constexpr auto kOutputStream_landmarks = "multi_face_landmarks";
         static constexpr auto kOutputStream_faceCount = "face_count";
