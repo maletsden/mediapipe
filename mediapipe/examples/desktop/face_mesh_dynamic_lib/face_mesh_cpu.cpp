@@ -23,13 +23,10 @@ int main(int argc, char **argv) {
 
   // Maximum number of faces that can be detected
   constexpr int maxNumFaces = 1;
-  constexpr char face_detection_model_path[] =
-      "mediapipe/modules/face_detection/face_detection_short_range.tflite";
-  constexpr char face_landmark_model_path[] =
-      "mediapipe/modules/face_landmark/face_landmark.tflite";
+  constexpr char face_detection_model_path[] = "mediapipe/modules/face_detection/face_detection_short_range.tflite";
+  constexpr char face_landmark_model_path[] = "mediapipe/modules/face_landmark/face_landmark.tflite";
 
-  MPFaceMeshDetector *faceMeshDetector = MPFaceMeshDetectorConstruct(
-      maxNumFaces, face_detection_model_path, face_landmark_model_path);
+  MPFaceMeshDetector *faceMeshDetector = MPFaceMeshDetectorConstruct(maxNumFaces,face_landmark_model_path);
 
   // Allocate memory for face landmarks.
   auto multiFaceLandmarks = new cv::Point2f *[maxNumFaces];
@@ -62,24 +59,30 @@ int main(int argc, char **argv) {
                                   multiFaceBoundingBoxes.data(), &faceCount);
 
     if (faceCount > 0) {
-      auto &face_bounding_box = multiFaceBoundingBoxes[0];
+      int landmarksFaceCount = 0;
+      MPFaceMeshDetectorDetect2DLandmarks(faceMeshDetector, multiFaceLandmarks, &landmarksFaceCount);
 
-      cv::rectangle(camera_frame_raw, face_bounding_box, cv::Scalar(0, 255, 0),
-                    3);
+      if (landmarksFaceCount != faceCount) {
+        LOG(ERROR) << "Face count differ between MPFaceMeshDetectorDetectFaces and"
+                      "MPFaceMeshDetectorDetect2DLandmarks.";
+      }
 
-      int landmarksNum = 0;
-      MPFaceMeshDetectorDetect2DLandmarks(faceMeshDetector, multiFaceLandmarks,
-                                          &landmarksNum);
-      auto &face_landmarks = multiFaceLandmarks[0];
-      auto &landmark = face_landmarks[0];
+      for (int faceIdx = 0; faceIdx < faceCount; ++faceIdx) {
+        // Draw bounding box.
+        cv::rectangle(camera_frame_raw, multiFaceBoundingBoxes[faceIdx], cv::Scalar(0, 255, 0), 3);
 
-      LOG(INFO) << "First landmark: x - " << landmark.x << ", y - "
-                << landmark.y;
+        // Draw face landmarks.
+        const auto faceLandmarks = multiFaceLandmarks[faceIdx];
+        for (int landmarkIdx = 0; landmarkIdx < MPFaceMeshDetectorLandmarksNum; ++landmarkIdx) {
+          cv::circle(camera_frame_raw, faceLandmarks[landmarkIdx], 1, cv::Scalar(0, 0, 255), -1);
+        }
+      }
     }
 
     const int pressed_key = cv::waitKey(5);
-    if (pressed_key >= 0 && pressed_key != 255)
+    if (pressed_key >= 0 && pressed_key != 255) {
       grab_frames = false;
+    }
 
     cv::imshow(kWindowName, camera_frame_raw);
   }

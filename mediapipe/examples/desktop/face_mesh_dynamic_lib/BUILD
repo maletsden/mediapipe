@@ -24,19 +24,13 @@ filegroup(
 
 package(default_visibility = ["//mediapipe/examples:__subpackages__"])
 
-# Define the shared library
-windows_dll_library(
-    name = "face_mesh_lib",
-    srcs = ["face_mesh_lib.cpp"],
-    hdrs = ["face_mesh_lib.h"],
-    # Define COMPILING_DLL to export symbols during compiling the DLL.
-    copts = ["-DCOMPILING_DLL"],
+cc_library(
+    name = "mediapipe_lib",
     deps = [
         "//mediapipe/framework:calculator_framework",
         "//mediapipe/framework/formats:image_frame",
         "//mediapipe/framework/formats:image_frame_opencv",
         "//mediapipe/framework/formats:landmark_cc_proto",
-        "//mediapipe/framework/formats:rect_cc_proto",
         "//mediapipe/framework/port:file_helpers",
         "//mediapipe/framework/port:opencv_highgui",
         "//mediapipe/framework/port:opencv_imgproc",
@@ -45,22 +39,56 @@ windows_dll_library(
         "//mediapipe/framework/port:status",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/memory:memory",
 
         "//mediapipe/calculators/core:constant_side_packet_calculator",
         "//mediapipe/calculators/core:flow_limiter_calculator",
         "//mediapipe/calculators/tflite:tflite_model_calculator",
         "//mediapipe/calculators/util:local_file_contents_calculator",
         "//mediapipe/modules/face_landmark:face_landmark_front_side_model_cpu_with_face_counter",
+    ],
+    alwayslink = 1,
+)
+
+# Define the shared library
+windows_dll_library(
+    name = "face_mesh_windows_lib.dll",
+    srcs = ["face_mesh_lib.cpp"],
+    hdrs = ["face_mesh_lib.h"],
+    # Define COMPILING_DLL to export symbols during compiling the DLL.
+    copts = ["-DCOMPILING_DLL"],
+    deps = [
+        ":mediapipe_lib",
     ]
 )
 
-# **Implicitly link to face_mesh_lib.dll**
+cc_library(
+    name = "face_mesh_linux_lib",
+    alwayslink = 1,
+    srcs = [
+        "face_mesh_lib.cpp",
+        "face_mesh_lib.h",
+        "MPFaceMeshDetector.h",
+        "MPFaceMeshDetector.cpp",
+    ],
+    deps = [
+        ":mediapipe_lib",
+    ],
+)
+
+cc_binary(
+    linkshared = 1,
+    linkstatic = 1,
+    name = "face_mesh_lib.so",
+    deps = [":face_mesh_linux_lib"],
+)
 
 ## Link to face_mesh_lib.dll through its import library.
 cc_binary(
     name = "face_mesh_cpu",
     srcs = ["face_mesh_cpu.cpp"],
-    deps = [
-        ":face_mesh_lib",
-    ],
+    deps = select({
+        "//mediapipe:windows": [":face_mesh_windows_lib.dll"],
+        "//conditions:default": [":face_mesh_linux_lib"],
+    }),
 )
