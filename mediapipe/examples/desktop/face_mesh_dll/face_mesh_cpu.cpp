@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
   constexpr bool with_attention = true;
 
   MPFaceMeshDetector *faceMeshDetector = MPFaceMeshDetectorConstruct(
-      maxNumFaces, face_detection_model_path, face_landmark_model_path, with_attention, face_landmark_with_attention_model_path);
+      maxNumFaces, with_attention, face_detection_model_path, face_landmark_model_path, face_landmark_with_attention_model_path);
 
   // Allocate memory for face landmarks.
   auto multiFaceLandmarks = new cv::Point2f *[maxNumFaces];
