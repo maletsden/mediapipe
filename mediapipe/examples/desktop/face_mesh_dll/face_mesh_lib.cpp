@@ -3,15 +3,15 @@
 int MPFaceMeshDetector::kLandmarksNum = 468;
 
 MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
+                                       bool with_attention,
                                        const char *face_detection_model_path,
                                        const char *face_landmark_model_path,
-                                       bool with_attention,
                                        const char *face_landmark_with_attention_model_path) {
   const auto status = InitFaceMeshDetector(
       numFaces,
+      with_attention,
       face_detection_model_path,
       face_landmark_model_path,
-      with_attention,
       face_landmark_with_attention_model_path);
   if (!status.ok()) {
     LOG(INFO) << "Failed constructing FaceMeshDetector.";
@@ -24,31 +24,20 @@ MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
 
 absl::Status
 MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
+                                         bool with_attention,
                                          const char *face_detection_model_path,
                                          const char *face_landmark_model_path,
-                                         bool with_attention,
                                          const char *face_landmark_with_attention_model_path) {
   numFaces = std::max(numFaces, 1);
-
-  if (face_detection_model_path == nullptr) {
-    face_detection_model_path =
-        "mediapipe/modules/face_detection/face_detection_short_range.tflite";
-  }
 
   if (with_attention) {
     face_landmark_model_path = face_landmark_with_attention_model_path;
   }
 
-  if (face_landmark_model_path == nullptr) {
-    face_landmark_model_path =
-        "mediapipe/modules/face_landmark/face_landmark.tflite";
-  }
-
   // Prepare graph config.
   auto preparedGraphConfig = absl::StrReplaceAll(
       graphConfig, {{"$numFaces", std::to_string(numFaces)}});
-  preparedGraphConfig = with_attention ? absl::StrReplaceAll( preparedGraphConfig, { {"$with_attention", "true"} }) :
-      absl::StrReplaceAll( preparedGraphConfig, { {"$with_attention", "false"} });
+  preparedGraphConfig = absl::StrReplaceAll( preparedGraphConfig, { {"$with_attention", with_attention ? "true" : "false"} });
   preparedGraphConfig = absl::StrReplaceAll(
       preparedGraphConfig,
       {{"$faceDetectionModelPath", face_detection_model_path}});
@@ -288,12 +277,12 @@ void MPFaceMeshDetector::DetectLandmarks(cv::Point3f **multi_face_landmarks,
 extern "C" {
 DLLEXPORT MPFaceMeshDetector *
 MPFaceMeshDetectorConstruct(int numFaces,
+    bool with_attention,
     const char* face_detection_model_path,
     const char* face_landmark_model_path,
-    bool with_attention,
     const char* face_landmark_model_with_attention_path){
-  return new MPFaceMeshDetector(numFaces, face_detection_model_path,
-                                face_landmark_model_path, with_attention, face_landmark_model_with_attention_path);
+  return new MPFaceMeshDetector(numFaces, with_attention, face_detection_model_path,
+                                face_landmark_model_path, face_landmark_model_with_attention_path);
 }
 
 DLLEXPORT void MPFaceMeshDetectorDestruct(MPFaceMeshDetector *detector) {
