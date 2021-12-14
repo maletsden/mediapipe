@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <memory>
 #include <string>
-#include <windows.h>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
