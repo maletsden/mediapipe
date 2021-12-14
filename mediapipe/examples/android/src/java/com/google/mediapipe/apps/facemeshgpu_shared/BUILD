@@ -42,6 +42,7 @@ cc_binary(
         "//mediapipe/framework/formats:image_frame",
         "//mediapipe/framework/formats:image_frame_opencv",
         "//mediapipe/framework/formats:landmark_cc_proto",
+		"//mediapipe/framework/formats:rect_cc_proto",
         "//mediapipe/framework/port:file_helpers",
         "//mediapipe/framework/port:opencv_highgui",
         "//mediapipe/framework/port:opencv_imgproc",
@@ -78,7 +79,7 @@ android_binary(
     manifest_values = {
         "applicationId": "com.google.mediapipe.apps.facemeshgpu",
         "appName": "Face Mesh",
-        "mainActivity": ".MainActivity",
+        "mainActivity": "//mediapipe/examples/android/src/java/com/google/mediapipe/apps/facemeshgpu:.MainActivity",
         "cameraFacingFront": "True",
         "binaryGraphName": "face_mesh_mobile_gpu.binarypb",
         "inputVideoStreamName": "input_video",
