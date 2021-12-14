@@ -63,22 +63,6 @@ mediapipe_simple_subgraph(
 )
 
 mediapipe_simple_subgraph(
-    name = "face_landmark_side_model_cpu",
-    graph = "face_landmark_side_model_cpu.pbtxt",
-    register_as = "FaceLandmarkSideModelCpu",
-    deps = [
-        "//mediapipe/calculators/core:gate_calculator",
-        "//mediapipe/calculators/core:split_vector_calculator",
-        "//mediapipe/calculators/tensor:image_to_tensor_calculator",
-        "//mediapipe/calculators/tensor:inference_calculator",
-        "//mediapipe/calculators/tensor:tensors_to_floats_calculator",
-        "//mediapipe/calculators/tensor:tensors_to_landmarks_calculator",
-        "//mediapipe/calculators/util:landmark_projection_calculator",
-        "//mediapipe/calculators/util:thresholding_calculator",
-    ],
-)
-
-mediapipe_simple_subgraph(
     name = "face_landmark_gpu",
     graph = "face_landmark_gpu.pbtxt",
     register_as = "FaceLandmarkGpu",
