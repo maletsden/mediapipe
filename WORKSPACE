@@ -188,7 +188,7 @@ http_archive(
 new_local_repository(
     name = "linux_opencv",
     build_file = "@//third_party:opencv_linux.BUILD",
-    path = "/usr/local",
+    path = "/usr",
 )
 
 new_local_repository(
@@ -252,12 +252,10 @@ http_archive(
 # You may run setup_android.sh to install Android SDK and NDK.
 android_ndk_repository(
     name = "androidndk",
-    path = "/home/pavlik/Android/Ndk/android-ndk-r19c",
 )
 
 android_sdk_repository(
     name = "androidsdk",
-    path = "/home/pavlik/Android/Sdk",
 )
 
 # iOS basic build deps.
