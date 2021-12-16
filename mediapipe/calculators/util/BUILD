@@ -1405,7 +1405,6 @@ mediapipe_proto_library(
 
 cc_library(
     name = "landmarks_refinement_calculator",
-    srcs = ["landmarks_refinement_calculator.cc"],
     hdrs = ["landmarks_refinement_calculator.h"],
     deps = [
         ":landmarks_refinement_calculator_cc_proto",
