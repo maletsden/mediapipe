@@ -1184,7 +1184,7 @@ cc_test(
 
 cc_library(
     name = "constant_side_packet_calculator",
-    srcs = ["constant_side_packet_calculator.cc"],
+    srcs = ["constant_side_packet_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":constant_side_packet_calculator_cc_proto",

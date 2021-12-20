@@ -155,25 +155,6 @@ node {
     output_side_packet: "MODEL:face_landmark_model"
 }
 
-# Defines whether landmarks on the previous image should be used to help
-# localize landmarks on the current image.
-node {
-  name: "ConstantSidePacketCalculator"
-  calculator: "ConstantSidePacketCalculator"
-  output_side_packet: "PACKET:use_prev_landmarks"
-  options: {
-    [mediapipe.ConstantSidePacketCalculatorOptions.ext]: {
-      packet { bool_value: true }
-    }
-  }
-}
-node {
-  calculator: "GateCalculator"
-  input_side_packet: "ALLOW:use_prev_landmarks"
-  input_stream: "prev_face_rects_from_landmarks"
-  output_stream: "gated_prev_face_rects_from_landmarks"
-}
-
 # Determines if an input vector of NormalizedRect has a size greater than or
 # equal to the provided num_faces.
 node {

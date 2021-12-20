@@ -850,7 +850,7 @@ mediapipe_proto_library(
 
 cc_library(
     name = "switch_container",
-    srcs = ["switch_container.cc"],
+    srcs = ["switch_container.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":container_util",

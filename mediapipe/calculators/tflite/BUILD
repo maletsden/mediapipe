@@ -116,7 +116,7 @@ cc_library(
 
 cc_library(
     name = "tflite_custom_op_resolver_calculator",
-    srcs = ["tflite_custom_op_resolver_calculator.cc"],
+    srcs = ["tflite_custom_op_resolver_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":tflite_custom_op_resolver_calculator_cc_proto",
