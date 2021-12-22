@@ -251,8 +251,6 @@ private:
 };
 
 MEDIAPIPE_NODE_IMPLEMENTATION(LandmarksRefinementCalculatorImpl);
-
-REGISTER_CALCULATOR(LandmarksRefinementCalculator);
 }  // namespace api2
 }  // namespace mediapipe
 

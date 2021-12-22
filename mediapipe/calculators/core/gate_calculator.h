@@ -22,10 +22,6 @@ namespace mediapipe {
 
 namespace {
 
-constexpr char kStateChangeTag[] = "STATE_CHANGE";
-constexpr char kDisallowTag[] = "DISALLOW";
-constexpr char kAllowTag[] = "ALLOW";
-
 enum GateState {
   GATE_UNINITIALIZED,
   GATE_ALLOW,
@@ -86,6 +82,10 @@ std::string ToString(GateState state) {
 // }
 class GateCalculator : public CalculatorBase {
  public:
+    constexpr static char kStateChangeTag[] = "STATE_CHANGE";
+    constexpr static char kDisallowTag[] = "DISALLOW";
+    constexpr static char kAllowTag[] = "ALLOW";
+    
   GateCalculator() {}
 
   static absl::Status CheckAndInitAllowDisallowInputs(CalculatorContract* cc) {

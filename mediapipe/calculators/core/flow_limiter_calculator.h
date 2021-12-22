@@ -24,11 +24,6 @@
 
 namespace mediapipe {
 
-constexpr char kFinishedTag[] = "FINISHED";
-constexpr char kAllowTag[] = "ALLOW";
-constexpr char kMaxInFlightTag[] = "MAX_IN_FLIGHT";
-constexpr char kOptionsTag[] = "OPTIONS";
-
 // FlowLimiterCalculator is used to limit the number of frames in flight
 // by dropping input frames when necessary.
 //
@@ -72,6 +67,11 @@ constexpr char kOptionsTag[] = "OPTIONS";
 //
 class FlowLimiterCalculator : public CalculatorBase {
  public:
+    constexpr static char kFinishedTag[] = "FINISHED";
+    constexpr static char kAllowTag[] = "ALLOW";
+    constexpr static char kMaxInFlightTag[] = "MAX_IN_FLIGHT";
+    constexpr static char kOptionsTag[] = "OPTIONS";
+    
   static absl::Status GetContract(CalculatorContract* cc) {
     auto& side_inputs = cc->InputSidePackets();
     side_inputs.Tag(kOptionsTag).Set<FlowLimiterCalculatorOptions>().Optional();
