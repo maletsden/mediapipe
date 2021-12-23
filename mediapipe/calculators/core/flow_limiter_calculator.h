@@ -67,18 +67,26 @@ namespace mediapipe {
 //
 class FlowLimiterCalculator : public CalculatorBase {
  public:
+    constexpr static char kFinishedTag[] = "FINISHED";
+    constexpr static char kAllowTag[] = "ALLOW";
+    constexpr static char kMaxInFlightTag[] = "MAX_IN_FLIGHT";
+    constexpr static char kOptionsTag[] = "OPTIONS";
+    
   static absl::Status GetContract(CalculatorContract* cc) {
     auto& side_inputs = cc->InputSidePackets();
-    side_inputs.Tag("OPTIONS").Set<FlowLimiterCalculatorOptions>().Optional();
-    cc->Inputs().Tag("OPTIONS").Set<FlowLimiterCalculatorOptions>().Optional();
+    side_inputs.Tag(kOptionsTag).Set<FlowLimiterCalculatorOptions>().Optional();
+    cc->Inputs()
+        .Tag(kOptionsTag)
+        .Set<FlowLimiterCalculatorOptions>()
+        .Optional();
     RET_CHECK_GE(cc->Inputs().NumEntries(""), 1);
     for (int i = 0; i < cc->Inputs().NumEntries(""); ++i) {
       cc->Inputs().Get("", i).SetAny();
       cc->Outputs().Get("", i).SetSameAs(&(cc->Inputs().Get("", i)));
     }
     cc->Inputs().Get("FINISHED", 0).SetAny();
-    cc->InputSidePackets().Tag("MAX_IN_FLIGHT").Set<int>().Optional();
-    cc->Outputs().Tag("ALLOW").Set<bool>().Optional();
+    cc->InputSidePackets().Tag(kMaxInFlightTag).Set<int>().Optional();
+    cc->Outputs().Tag(kAllowTag).Set<bool>().Optional();
     cc->SetInputStreamHandler("ImmediateInputStreamHandler");
     cc->SetProcessTimestampBounds(true);
     return absl::OkStatus();
@@ -87,9 +95,9 @@ class FlowLimiterCalculator : public CalculatorBase {
   absl::Status Open(CalculatorContext* cc) final {
     options_ = cc->Options<FlowLimiterCalculatorOptions>();
     options_ = tool::RetrieveOptions(options_, cc->InputSidePackets());
-    if (cc->InputSidePackets().HasTag("MAX_IN_FLIGHT")) {
+    if (cc->InputSidePackets().HasTag(kMaxInFlightTag)) {
       options_.set_max_in_flight(
-          cc->InputSidePackets().Tag("MAX_IN_FLIGHT").Get<int>());
+          cc->InputSidePackets().Tag(kMaxInFlightTag).Get<int>());
     }
     input_queues_.resize(cc->Inputs().NumEntries(""));
     RET_CHECK_OK(CopyInputHeadersToOutputs(cc->Inputs(), &(cc->Outputs())));
@@ -104,8 +112,8 @@ class FlowLimiterCalculator : public CalculatorBase {
 
   // Outputs a packet indicating whether a frame was sent or dropped.
   void SendAllow(bool allow, Timestamp ts, CalculatorContext* cc) {
-    if (cc->Outputs().HasTag("ALLOW")) {
-      cc->Outputs().Tag("ALLOW").AddPacket(MakePacket<bool>(allow).At(ts));
+    if (cc->Outputs().HasTag(kAllowTag)) {
+      cc->Outputs().Tag(kAllowTag).AddPacket(MakePacket<bool>(allow).At(ts));
     }
   }
 
@@ -155,7 +163,7 @@ class FlowLimiterCalculator : public CalculatorBase {
     options_ = tool::RetrieveOptions(options_, cc->Inputs());
 
     // Process the FINISHED input stream.
-    Packet finished_packet = cc->Inputs().Tag("FINISHED").Value();
+    Packet finished_packet = cc->Inputs().Tag(kFinishedTag).Value();
     if (finished_packet.Timestamp() == cc->InputTimestamp()) {
       while (!frames_in_flight_.empty() &&
              frames_in_flight_.front() <= finished_packet.Timestamp()) {
@@ -210,8 +218,8 @@ class FlowLimiterCalculator : public CalculatorBase {
       Timestamp bound =
           cc->Inputs().Get("", 0).Value().Timestamp().NextAllowedInStream();
       SetNextTimestampBound(bound, &cc->Outputs().Get("", 0));
-      if (cc->Outputs().HasTag("ALLOW")) {
-        SetNextTimestampBound(bound, &cc->Outputs().Tag("ALLOW"));
+      if (cc->Outputs().HasTag(kAllowTag)) {
+        SetNextTimestampBound(bound, &cc->Outputs().Tag(kAllowTag));
       }
     }
 
