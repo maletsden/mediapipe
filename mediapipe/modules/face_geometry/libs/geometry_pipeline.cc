@@ -366,6 +366,47 @@ class GeometryPipelineImpl : public GeometryPipeline {
     return multi_face_geometry;
   }
 
+  absl::StatusOr<std::vector<Eigen::Matrix4f>> EstimateFacePoses(
+      const std::vector<NormalizedLandmarkList>& multi_face_landmarks,
+      int frame_width, int frame_height) const override {
+      MP_RETURN_IF_ERROR(ValidateFrameDimensions(frame_width, frame_height))
+          << "Invalid frame dimensions!";
+
+      // Create a perspective camera frustum to be shared for geometry estimation
+      // per each face.
+      PerspectiveCameraFrustum pcf(perspective_camera_, frame_width,
+          frame_height);
+
+      std::vector<Eigen::Matrix4f> multi_face_poses;
+      std::cout << "EstimateFacePoses before loop.\n";
+      // From this point, the meaning of "face landmarks" is clarified further as
+      // "screen face landmarks". This is done do distinguish from "metric face
+      // landmarks" that are derived during the face geometry estimation process.
+      for (const NormalizedLandmarkList& screen_face_landmarks :
+          multi_face_landmarks) {
+          int i = 0;
+          // Having a too compact screen landmark list will result in numerical
+          // instabilities, therefore such faces are filtered.
+          if (IsScreenLandmarkListTooCompact(screen_face_landmarks)) {
+              continue;
+          }
+
+          // Convert the screen landmarks into the metric landmarks and get the pose
+          // transformation matrix.
+          LandmarkList metric_face_landmarks;
+          Eigen::Matrix4f pose_transform_mat;
+          std::cout << "space_converter_->Convert starts.(" << i++ << ")\n";
+          MP_RETURN_IF_ERROR(space_converter_->Convert(screen_face_landmarks, pcf,
+              metric_face_landmarks,
+              pose_transform_mat))
+              << "Failed to convert landmarks from the screen to the metric space!";
+          std::cout << "space_converter_->Convert ends.\n";
+          multi_face_poses.push_back(pose_transform_mat);
+      }
+      std::cout << "EstimateFacePoses ends.\n";
+      return multi_face_poses;
+  }
+
  private:
   static bool IsScreenLandmarkListTooCompact(
       const NormalizedLandmarkList& screen_landmarks) {

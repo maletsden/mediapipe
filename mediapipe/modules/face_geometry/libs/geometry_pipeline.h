@@ -18,6 +18,7 @@
 #include <memory>
 #include <vector>
 
+#include "Eigen/Core"
 #include "mediapipe/framework/formats/landmark.pb.h"
 #include "mediapipe/framework/port/statusor.h"
 #include "mediapipe/modules/face_geometry/protos/environment.pb.h"
@@ -48,6 +49,10 @@ class GeometryPipeline {
   //
   // Both `frame_width` and `frame_height` must be positive.
   virtual absl::StatusOr<std::vector<FaceGeometry>> EstimateFaceGeometry(
+      const std::vector<NormalizedLandmarkList>& multi_face_landmarks,
+      int frame_width, int frame_height) const = 0;
+
+  virtual absl::StatusOr<std::vector<Eigen::Matrix4f>> EstimateFacePoses(
       const std::vector<NormalizedLandmarkList>& multi_face_landmarks,
       int frame_width, int frame_height) const = 0;
 };

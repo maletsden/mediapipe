@@ -29,10 +29,13 @@ int main(int argc, char **argv) {
       "mediapipe/modules/face_landmark/face_landmark.tflite";
   constexpr char face_landmark_with_attention_model_path[] =
       "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite";
-  constexpr bool with_attention = true;
+  constexpr char geometry_pipeline_metadata_landmarks_path[] =
+      "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb";
+  constexpr bool with_attention = false;
 
   MPFaceMeshDetector *faceMeshDetector = MPFaceMeshDetectorConstruct(
-      maxNumFaces, with_attention, face_detection_model_path, face_landmark_model_path, face_landmark_with_attention_model_path);
+      maxNumFaces, with_attention, face_detection_model_path, face_landmark_model_path,
+      face_landmark_with_attention_model_path, geometry_pipeline_metadata_landmarks_path);
 
   // Allocate memory for face landmarks.
   auto multiFaceLandmarks = new cv::Point2f *[maxNumFaces];
@@ -41,6 +44,7 @@ int main(int argc, char **argv) {
   }
 
   std::vector<cv::Rect> multiFaceBoundingBoxes(maxNumFaces);
+  std::vector<cv::Mat> multiFacePoses(maxNumFaces, cv::Mat::zeros(4,4,CV_64F));
 
   LOG(INFO) << "FaceMeshDetector constructed.";
 
@@ -62,7 +66,7 @@ int main(int argc, char **argv) {
     int faceCount = 0;
 
     MPFaceMeshDetectorDetectFaces(faceMeshDetector, camera_frame,
-                                  multiFaceBoundingBoxes.data(), &faceCount);
+                                  multiFaceBoundingBoxes.data(), multiFacePoses.data(), &faceCount);
 
     if (faceCount > 0) {
       auto &face_bounding_box = multiFaceBoundingBoxes[0];
@@ -82,6 +86,20 @@ int main(int argc, char **argv) {
 
       LOG(INFO) << "First landmark: x - " << landmark.x << ", y - "
                 << landmark.y;
+      auto printRow = [&](int i) -> void
+      {
+          std::cout  << "{ " << multiFacePoses[0].at<double>(i, 0) << ", " << multiFacePoses[0].at<double>(i, 1) << ", "
+              << multiFacePoses[0].at<double>(i, 2) << ", "
+              << multiFacePoses[0].at<double>(i, 3) << " }";
+      };
+
+      if (!multiFacePoses.empty())
+      {
+          for (int i = 0; i < 4; ++i)
+          {
+              printRow(i);
+          }
+      }
     }
 
     const int pressed_key = cv::waitKey(5);
