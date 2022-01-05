@@ -35,7 +35,7 @@ public:
                      bool with_attention,
                      const char *face_detection_model_path,
                      const char *face_landmark_model_path,
-                     const char* face_landmark_model_with_attention_path);
+                     const char *face_landmark_model_with_attention_path);
 
   void DetectFaces(const cv::Mat &camera_frame,
                    cv::Rect *multi_face_bounding_boxes, int *numFaces);
