@@ -101,11 +101,12 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat& camera_frame,
     camera_frame.copyTo(input_frame_mat);
 
     // Send image packet into the graph.
-    size_t frame_timestamp_us = static_cast<double>(cv::getTickCount()) /
-        static_cast<double>(cv::getTickFrequency()) * 1e6;
+    //size_t frame_timestamp_us = static_cast<double>(cv::getTickCount()) /
+    //    static_cast<double>(cv::getTickFrequency()) * 1e6;
+    static size_t frame_timestamp = 0;
     MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
         kInputStream, mediapipe::Adopt(input_frame.release())
-        .At(mediapipe::Timestamp(frame_timestamp_us))));
+        .At(mediapipe::Timestamp(frame_timestamp++))));
 
     // Get face count.
     mediapipe::Packet face_count_packet;
@@ -305,7 +306,7 @@ extern "C" {
     }
 
     const int MPFaceMeshDetectorLandmarksNum =
-        MPFaceMeshDetector::kLandmarksNum;
+        MPFaceMeshDetector::kLandmarksNumWithAttention;
 }
 
 const std::string MPFaceMeshDetector::graphConfig = R"pb(
