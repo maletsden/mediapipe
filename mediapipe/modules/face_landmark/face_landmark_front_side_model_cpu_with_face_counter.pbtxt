@@ -57,6 +57,18 @@ output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
 # (int)
 output_stream: "FACE_COUNT_FROM_LANDMARKS:face_count"
 
+# The size of the input frame. The first element of the pair is the frame width;
+# the other one is the frame height.
+#
+# The face landmarks should have been detected on a frame with the same
+# ratio. If used as-is, the resulting face geometry visualization should be
+# happening on a frame with the same ratio as well.
+#
+# (std::pair<int, int>)
+output_stream: "IMAGE_SIZE:image_size"
+# Environment that describes the current virtual scene.
+# (face_geometry::Environment)
+output_side_packet: "ENVIRONMENT:environment"
 
 # Defines whether landmarks on the previous image should be used to help
 # localize landmarks on the current image.
@@ -232,6 +244,24 @@ node {
   input_stream: "ITEM:face_landmarks"
   input_stream: "BATCH_END:landmarks_loop_end_timestamp"
   output_stream: "ITERABLE:multi_face_landmarks"
+}
+
+# Generates an environment that describes the current virtual scene.
+node {
+  calculator: "FaceGeometryEnvGeneratorCalculator"
+  output_side_packet: "ENVIRONMENT:environment"
+  node_options: {
+    [type.googleapis.com/mediapipe.FaceGeometryEnvGeneratorCalculatorOptions] {
+      environment: {
+        origin_point_location: 2
+        perspective_camera: {
+          vertical_fov_degrees: 75.0  # 75 degrees
+          near: 1.0  # 1cm
+          far: 1000.0  # 10m
+        }
+      }
+    }
+  }
 }
 
 # Collects a NormalizedRect for each face into a vector. Upon receiving the
