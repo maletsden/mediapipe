@@ -54,7 +54,7 @@ class GeometryPipeline {
 
   virtual absl::StatusOr<std::vector<Eigen::Matrix4f>> EstimateFacePoses(
       const std::vector<NormalizedLandmarkList>& multi_face_landmarks,
-      int frame_width, int frame_height) const = 0;
+      bool with_attention, int frame_width, int frame_height) const = 0;
 };
 
 // Creates an instance of `GeometryPipeline`.

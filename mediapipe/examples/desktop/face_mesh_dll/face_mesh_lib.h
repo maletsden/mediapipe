@@ -55,8 +55,8 @@ private:
                                     bool with_attention,
                                     const char *face_detection_model_path,
                                     const char *face_landmark_model_path,
-                                    const char* face_landmark_model_with_attention_path,
-                                    const char* geometry_pipeline_metadata_landmarks_path);
+                                    const char *face_landmark_model_with_attention_path,
+                                    const char *geometry_pipeline_metadata_landmarks_path);
   absl::Status DetectFacesWithStatus(const cv::Mat &camera_frame,
                                      cv::Rect *multi_face_bounding_boxes,
                                      cv::Mat *multi_face_poses,
@@ -66,7 +66,6 @@ private:
   absl::Status DetectLandmarksWithStatus(cv::Point3f **multi_face_landmarks);
 
   static constexpr auto kInputStream = "input_video";
-  static constexpr auto kInputStream_image_size = "my_image_size";
   static constexpr auto kOutputStream_landmarks = "multi_face_landmarks";
   static constexpr auto kOutputStream_faceCount = "face_count";
   static constexpr auto kOutputStream_face_rects_from_landmarks =
@@ -98,8 +97,8 @@ MPFaceMeshDetectorConstruct(int numFaces,
     bool with_attention = true,
     const char *face_detection_model_path = "mediapipe/modules/face_detection/face_detection_short_range.tflite",
     const char *face_landmark_model_path = "mediapipe/modules/face_landmark/face_landmark.tflite",
-    const char* face_landmark_model_with_attention_path = "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite",
-    const char* geometry_pipeline_metadata_landmarks_path =
+    const char *face_landmark_model_with_attention_path = "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite",
+    const char *geometry_pipeline_metadata_landmarks_path =
         "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb");
 
 DLLEXPORT void MPFaceMeshDetectorDestruct(MPFaceMeshDetector *detector);

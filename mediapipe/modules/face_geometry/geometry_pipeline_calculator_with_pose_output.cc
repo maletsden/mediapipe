@@ -23,6 +23,7 @@ namespace mediapipe {
 namespace {
 
 static constexpr char kEnvironmentTag[] = "ENVIRONMENT";
+static constexpr char kWithAttentionTag[] = "WITH_ATTENTION";
 static constexpr char kImageSizeTag[] = "IMAGE_SIZE";
 static constexpr char kMultiFacePosesTag[] = "MULTI_FACE_POSES";
 static constexpr char kMultiFaceLandmarksTag[] = "MULTI_FACE_LANDMARKS";
@@ -60,10 +61,10 @@ static constexpr char kMultiFaceLandmarksTag[] = "MULTI_FACE_LANDMARKS";
 class GeometryPipelineCalculator : public CalculatorBase {
  public:
   static absl::Status GetContract(CalculatorContract* cc) {
-      std::cout << "Geometry pipeline Calculator with pose output starts 1.\n";
     cc->InputSidePackets()
         .Tag(kEnvironmentTag)
         .Set<face_geometry::Environment>();
+    cc->InputSidePackets().Tag(kWithAttentionTag).Set<bool>();
     cc->Inputs().Tag(kImageSizeTag).Set<std::pair<int, int>>();
     cc->Inputs()
         .Tag(kMultiFaceLandmarksTag)
@@ -76,7 +77,6 @@ class GeometryPipelineCalculator : public CalculatorBase {
   }
 
   absl::Status Open(CalculatorContext* cc) override {
-      std::cout << "Geometry pipeline Calculator with pose output starts 2.\n";
     cc->SetOffset(mediapipe::TimestampDiff(0));
 
     const auto& options = cc->Options<FaceGeometryPipelineCalculatorOptions>();
@@ -101,7 +101,6 @@ class GeometryPipelineCalculator : public CalculatorBase {
         geometry_pipeline_,
         face_geometry::CreateGeometryPipeline(environment, metadata),
         _ << "Failed to create a geometry pipeline!");
-    std::cout << "Geometry pipeline Calculator with pose initialized.\n";
     return absl::OkStatus();
   }
 
@@ -109,12 +108,13 @@ class GeometryPipelineCalculator : public CalculatorBase {
     // Both the `IMAGE_SIZE` and the `MULTI_FACE_LANDMARKS` streams are required
     // to have a non-empty packet. In case this requirement is not met, there's
     // nothing to be processed at the current timestamp.
-      std::cout << "Geometry pipeline Calculator with pose output starts 3.\n";
     if (cc->Inputs().Tag(kImageSizeTag).IsEmpty() ||
         cc->Inputs().Tag(kMultiFaceLandmarksTag).IsEmpty()) {
       return absl::OkStatus();
     }
 
+    const bool& with_attention =
+        cc->InputSidePackets().Tag(kWithAttentionTag).Get<bool>();
     const auto& image_size =
         cc->Inputs().Tag(kImageSizeTag).Get<std::pair<int, int>>();
     const auto& multi_face_landmarks =
@@ -124,20 +124,18 @@ class GeometryPipelineCalculator : public CalculatorBase {
 
     auto multi_face_poses =
         absl::make_unique<std::vector<Eigen::Matrix4f>>();
-    std::cout << "EstimateFacePoses starts.\n";
     ASSIGN_OR_RETURN(
         *multi_face_poses,
         geometry_pipeline_->EstimateFacePoses(
             multi_face_landmarks,  //
+            with_attention,
             /*frame_width*/ image_size.first,
             /*frame_height*/ image_size.second),
         _ << "Failed to estimate face pose for multiple faces!");
-    std::cout << "Add to output stream.\n";
     cc->Outputs()
         .Tag(kMultiFacePosesTag)
         .AddPacket(mediapipe::MakePacket<std::vector<Eigen::Matrix4f>>(*multi_face_poses)
                        .At(cc->InputTimestamp()));
-    std::cout << "End calculator.\n";
     return absl::OkStatus();
   }
 

@@ -59,7 +59,7 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
           preparedGraphConfig);
   LOG(INFO) << "Initialize the calculator graph.";
 
-  MP_RETURN_IF_ERROR(graph.Initialize(config), std::_In_place_key_extract_map<>);
+  MP_RETURN_IF_ERROR(graph.Initialize(config));
 
   LOG(INFO) << "Start running the calculator graph.";
 
@@ -106,12 +106,6 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   *numFaces = 0;
   face_count = 0;
 
-image_width = camera_frame.cols;
-image_height = camera_frame.rows;
-const auto image_width_f = static_cast<float>(image_width);
-const auto image_height_f = static_cast<float>(image_height);
-
-std::pair<int, int> input_image_size{ image_width, image_height };
 // Wrap Mat into an ImageFrame.
 auto input_frame = absl::make_unique<mediapipe::ImageFrame>(
     mediapipe::ImageFormat::SRGB, camera_frame.cols, camera_frame.rows,
@@ -125,12 +119,6 @@ static_cast<double>(cv::getTickFrequency()) * 1e6;
 MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
     kInputStream, mediapipe::Adopt(input_frame.release())
     .At(mediapipe::Timestamp(frame_timestamp_us))));
-
-//frame_timestamp_us = static_cast<double>(cv::getTickCount()) /
-//static_cast<double>(cv::getTickFrequency()) * 1e6;
-//MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
-//    kInputStream_image_size, mediapipe::MakePacket<std::pair<int, int>>(input_image_size)
-//    .At(mediapipe::Timestamp(frame_timestamp_us))));
 
 // Get face count.
 mediapipe::Packet face_count_packet;
@@ -159,6 +147,11 @@ auto& face_bounding_boxes =
 face_rects_from_landmarks_packet
 .Get<::std::vector<::mediapipe::NormalizedRect>>();
 
+image_width = camera_frame.cols;
+image_height = camera_frame.rows;
+const auto image_width_f = static_cast<float>(image_width);
+const auto image_height_f = static_cast<float>(image_height);
+
 // Convert vector<NormalizedRect> (center based Rects) to cv::Rect*
 // (leftTop based Rects).
 for (int i = 0; i < face_count_val; ++i) {
@@ -180,26 +173,18 @@ for (int i = 0; i < face_count_val; ++i) {
     bounding_box.height = height;
 }
 
-std::cout << "Bounding boxes detection ends.\n";
-
-std::cout << "Pose detection starts.\n";
-
 mediapipe::Packet poses_packet;
 if (!poses_poller_ptr) {
     return absl::CancelledError(
         "Failed during getting next poses_packet. 1");
 }
 
-std::cout << "poses_poller_ptr not empty.\n";
-
 if (!poses_poller_ptr->Next(&poses_packet)) {
     return absl::CancelledError(
         "Failed during getting next poses_packet. 2");
 }
 
-std::cout << "Get next poses_packet.\n";
 auto& face_poses = poses_packet.Get<::std::vector<Eigen::Matrix4f>>();
-std::cout << "Initialize face_poses.\n face_count_val = " << face_count_val << "\n";
 for (int i = 0; i < face_count_val; ++i) {
     for (int k = 0; k < 4; ++k) {
         for (int j = 0; j < 4; ++j) {
@@ -207,19 +192,14 @@ for (int i = 0; i < face_count_val; ++i) {
         }
     }
 }
-//std::cout << "multi_face_poses size = " << multi_face_poses[0].cols* multi_face_poses[0].rows << "\n";
-//std::cout << "Poses detection ends. face_poses size = " << face_poses[0].size() << "\n";
-std::cout << "Poses detection ends.\n";
 // Get face landmarks.
 if (!landmarks_poller_ptr ||
     !landmarks_poller_ptr->Next(&face_landmarks_packet)) {
     return absl::CancelledError("Failed during getting next landmarks_packet.");
 }
-std::cout << "Landmarks detection ends.\n";
 
 *numFaces = face_count_val;
 face_count = face_count_val;
-
 
   return absl::OkStatus();
 }
@@ -434,17 +414,6 @@ node {
   }
 }
 
-# Defines side packets for further use in the graph.
-node {
-    calculator: "ConstantSidePacketCalculator"
-    output_side_packet: "PACKET:geometry_pipeline_metadata_landmarks_path"
-    node_options: {
-        [type.googleapis.com/mediapipe.ConstantSidePacketCalculatorOptions]: {
-            packet { string_value: "$geometryPipelineMetadataLandmarksPath" }
-    }
-  }
-}
-
 node {
     calculator: "LocalFileContentsCalculator"
     input_side_packet: "FILE_PATH:0:face_detection_model_path"
@@ -470,7 +439,6 @@ node {
 node {
   calculator: "FaceLandmarkFrontSideModelCpuWithFaceCounter"
   input_stream: "IMAGE:throttled_input_video"
-  input_side_packet: "METADATA_PATH:geometry_pipeline_metadata_landmarks_path"
   input_side_packet: "NUM_FACES:num_faces"
   input_side_packet: "MODEL:0:face_detection_model"
   input_side_packet: "MODEL:1:face_landmark_model"
@@ -480,7 +448,24 @@ node {
   output_stream: "DETECTIONS:face_detections"
   output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
   output_stream: "FACE_COUNT_FROM_LANDMARKS:face_count"
+  output_stream: "IMAGE_SIZE:image_size"
+  output_side_packet: "ENVIRONMENT:environment"
+}
+
+# Extracts face geometry for multiple faces from a vector of face landmark
+# lists.
+node {
+  calculator: "FaceGeometryPipelineCalculatorWithPoseOutput"
+  input_side_packet: "ENVIRONMENT:environment"
+  input_side_packet: "WITH_ATTENTION:with_attention"
+  input_stream: "IMAGE_SIZE:image_size"
+  input_stream: "MULTI_FACE_LANDMARKS:multi_face_landmarks"
   output_stream: "MULTI_FACE_POSES:multi_face_poses"
+  options: {
+    [mediapipe.FaceGeometryPipelineCalculatorOptions.ext] {
+      metadata_path: "$geometryPipelineMetadataLandmarksPath"
+    }
+  }
 }
 
 )pb";
