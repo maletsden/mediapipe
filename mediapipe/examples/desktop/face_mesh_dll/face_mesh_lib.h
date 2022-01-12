@@ -32,6 +32,7 @@
 class MPFaceMeshDetector {
 public:
   MPFaceMeshDetector(int numFaces,
+                     cv::Mat cameraMatrix,
                      bool with_attention,
                      const char *face_detection_model_path,
                      const char *face_landmark_model_path,
@@ -40,8 +41,10 @@ public:
 
   void DetectFaces(const cv::Mat &camera_frame,
                    cv::Rect *multi_face_bounding_boxes,
-                   cv::Mat *multi_face_poses,
+                   int fps,
                    int *numFaces);
+
+  void DetectFacePoses(cv::Mat* multi_face_poses, int* numFaces);
 
   void DetectLandmarks(cv::Point2f **multi_face_landmarks, int *numFaces);
   void DetectLandmarks(cv::Point3f **multi_face_landmarks, int *numFaces);
@@ -52,6 +55,7 @@ public:
 
 private:
   absl::Status InitFaceMeshDetector(int numFaces,
+                                    cv::Mat cameraMetrix,
                                     bool with_attention,
                                     const char *face_detection_model_path,
                                     const char *face_landmark_model_path,
@@ -59,14 +63,18 @@ private:
                                     const char *geometry_pipeline_metadata_landmarks_path);
   absl::Status DetectFacesWithStatus(const cv::Mat &camera_frame,
                                      cv::Rect *multi_face_bounding_boxes,
-                                     cv::Mat *multi_face_poses,
+                                     int fps,
                                      int *numFaces);
+
+  absl::Status DetectFacePosesWithStatus(cv::Mat* multi_face_poses);
 
   absl::Status DetectLandmarksWithStatus(cv::Point2f **multi_face_landmarks);
   absl::Status DetectLandmarksWithStatus(cv::Point3f **multi_face_landmarks);
 
   static constexpr auto kInputStream = "input_video";
-  static constexpr auto kOutputStream_landmarks = "multi_face_landmarks";
+  static constexpr auto kInputStream_camera_matrix = "camera_matrix";
+  static constexpr auto kInputStream_fps = "fps";
+  static constexpr auto kOutputStream_landmarks = "filtered_multi_face_landmarks";
   static constexpr auto kOutputStream_faceCount = "face_count";
   static constexpr auto kOutputStream_face_rects_from_landmarks =
       "face_rects_from_landmarks";
@@ -86,6 +94,9 @@ private:
   int image_width;
   int image_height;
   mediapipe::Packet face_landmarks_packet;
+  mediapipe::Packet poses_packet;
+
+  cv::Mat m_cameraMatrix;
 };
 
 #ifdef __cplusplus
@@ -94,6 +105,7 @@ extern "C" {
 
 DLLEXPORT MPFaceMeshDetector *
 MPFaceMeshDetectorConstruct(int numFaces,
+    cv::Mat cameraMatrix,
     bool with_attention = true,
     const char *face_detection_model_path = "mediapipe/modules/face_detection/face_detection_short_range.tflite",
     const char *face_landmark_model_path = "mediapipe/modules/face_landmark/face_landmark.tflite",
@@ -105,7 +117,12 @@ DLLEXPORT void MPFaceMeshDetectorDestruct(MPFaceMeshDetector *detector);
 
 DLLEXPORT void MPFaceMeshDetectorDetectFaces(
     MPFaceMeshDetector *detector, const cv::Mat &camera_frame,
-    cv::Rect *multi_face_bounding_boxes, cv::Mat *multi_face_poses, int *numFaces);
+    cv::Rect *multi_face_bounding_boxes, int fps, int *numFaces);
+
+DLLEXPORT void
+MPFaceMeshDetectorDetectFacePoses(MPFaceMeshDetector* detector,
+    cv::Mat* multi_face_poses,
+    int* numFaces);
 
 DLLEXPORT void
 MPFaceMeshDetectorDetect2DLandmarks(MPFaceMeshDetector *detector,

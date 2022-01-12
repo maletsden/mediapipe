@@ -4,6 +4,7 @@
 int MPFaceMeshDetector::kLandmarksNum = 468;
 
 MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
+                                       cv::Mat cameraMatrix,
                                        bool with_attention,
                                        const char *face_detection_model_path,
                                        const char *face_landmark_model_path,
@@ -11,6 +12,7 @@ MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
                                        const char *geometry_pipeline_metadata_landmarks_path) {
   const auto status = InitFaceMeshDetector(
       numFaces,
+      cameraMatrix,
       with_attention,
       face_detection_model_path,
       face_landmark_model_path,
@@ -27,13 +29,14 @@ MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
 
 absl::Status
 MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
+                                         cv::Mat cameraMatrix,
                                          bool with_attention,
                                          const char *face_detection_model_path,
                                          const char *face_landmark_model_path,
                                          const char *face_landmark_with_attention_model_path,
                                          const char *geometry_pipeline_metadata_landmarks_path) {
   numFaces = std::max(numFaces, 1);
-
+  m_cameraMatrix = cameraMatrix.clone();
   if (with_attention) {
     face_landmark_model_path = face_landmark_with_attention_model_path;
   }
@@ -94,9 +97,9 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
 absl::Status
 MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
                                           cv::Rect *multi_face_bounding_boxes,
-                                          cv::Mat *multi_face_poses,
+                                          int fps,
                                           int *numFaces) {
-  if (!numFaces || !multi_face_bounding_boxes || !multi_face_poses) {
+  if (!numFaces || !multi_face_bounding_boxes) {
     return absl::InvalidArgumentError(
         "MPFaceMeshDetector::DetectFacesWithStatus requires notnull pointer to "
         "save results data.");
@@ -106,113 +109,140 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   *numFaces = 0;
   face_count = 0;
 
-// Wrap Mat into an ImageFrame.
-auto input_frame = absl::make_unique<mediapipe::ImageFrame>(
-    mediapipe::ImageFormat::SRGB, camera_frame.cols, camera_frame.rows,
-    mediapipe::ImageFrame::kDefaultAlignmentBoundary);
-cv::Mat input_frame_mat = mediapipe::formats::MatView(input_frame.get());
-camera_frame.copyTo(input_frame_mat);
+  // Wrap Mat into an ImageFrame.
+  auto input_frame = absl::make_unique<mediapipe::ImageFrame>(
+      mediapipe::ImageFormat::SRGB, camera_frame.cols, camera_frame.rows,
+      mediapipe::ImageFrame::kDefaultAlignmentBoundary);
+  cv::Mat input_frame_mat = mediapipe::formats::MatView(input_frame.get());
+  camera_frame.copyTo(input_frame_mat);
 
-// Send image packet into the graph.
-size_t frame_timestamp_us = static_cast<double>(cv::getTickCount()) /
-static_cast<double>(cv::getTickFrequency()) * 1e6;
-MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
-    kInputStream, mediapipe::Adopt(input_frame.release())
-    .At(mediapipe::Timestamp(frame_timestamp_us))));
+  // Send image packet into the graph.
+  size_t frame_timestamp_us = static_cast<double>(cv::getTickCount()) /
+                              static_cast<double>(cv::getTickFrequency()) * 1e6;
+  MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
+      kInputStream, mediapipe::Adopt(input_frame.release())
+      .At(mediapipe::Timestamp(frame_timestamp_us))));
+  // Send calibration packet into the graph.
+  MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
+      kInputStream_camera_matrix, mediapipe::MakePacket<cv::Mat>(m_cameraMatrix)
+      .At(mediapipe::Timestamp(frame_timestamp_us))));
+  // Send fps packet into the graph.
+  MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
+      kInputStream_fps, mediapipe::MakePacket<int>(fps)
+      .At(mediapipe::Timestamp(frame_timestamp_us))));
 
-// Get face count.
-mediapipe::Packet face_count_packet;
-if (!face_count_poller_ptr ||
-    !face_count_poller_ptr->Next(&face_count_packet)) {
-    return absl::CancelledError(
-        "Failed during getting next face_count_packet.");
-}
+  // Get face count.
+  mediapipe::Packet face_count_packet;
+  if (!face_count_poller_ptr ||
+      !face_count_poller_ptr->Next(&face_count_packet)) {
+      return absl::CancelledError(
+          "Failed during getting next face_count_packet.");
+  }
 
-auto& face_count_val = face_count_packet.Get<int>();
+  auto& face_count_val = face_count_packet.Get<int>();
 
-if (face_count_val <= 0) {
-    return absl::OkStatus();
-}
+  if (face_count_val <= 0) {
+      return absl::OkStatus();
+  }
 
-// Get face bounding boxes.
-mediapipe::Packet face_rects_from_landmarks_packet;
-if (!face_rects_from_landmarks_poller_ptr ||
-    !face_rects_from_landmarks_poller_ptr->Next(
-        &face_rects_from_landmarks_packet)) {
-    return absl::CancelledError(
-        "Failed during getting next face_rects_from_landmarks_packet.");
-}
+  // Get face bounding boxes.
+  mediapipe::Packet face_rects_from_landmarks_packet;
+  if (!face_rects_from_landmarks_poller_ptr ||
+      !face_rects_from_landmarks_poller_ptr->Next(
+          &face_rects_from_landmarks_packet)) {
+      return absl::CancelledError(
+          "Failed during getting next face_rects_from_landmarks_packet.");
+  }
 
-auto& face_bounding_boxes =
-face_rects_from_landmarks_packet
-.Get<::std::vector<::mediapipe::NormalizedRect>>();
+  auto& face_bounding_boxes =
+      face_rects_from_landmarks_packet
+          .Get<::std::vector<::mediapipe::NormalizedRect>>();
 
-image_width = camera_frame.cols;
-image_height = camera_frame.rows;
-const auto image_width_f = static_cast<float>(image_width);
-const auto image_height_f = static_cast<float>(image_height);
+  image_width = camera_frame.cols;
+  image_height = camera_frame.rows;
+  const auto image_width_f = static_cast<float>(image_width);
+  const auto image_height_f = static_cast<float>(image_height);
 
-// Convert vector<NormalizedRect> (center based Rects) to cv::Rect*
-// (leftTop based Rects).
-for (int i = 0; i < face_count_val; ++i) {
-    const auto& normalized_bounding_box = face_bounding_boxes[i];
-    auto& bounding_box = multi_face_bounding_boxes[i];
+  // Convert vector<NormalizedRect> (center based Rects) to cv::Rect*
+  // (leftTop based Rects).
+  for (int i = 0; i < face_count_val; ++i) {
+      const auto& normalized_bounding_box = face_bounding_boxes[i];
+      auto& bounding_box = multi_face_bounding_boxes[i];
 
-    const auto width =
-        static_cast<int>(normalized_bounding_box.width() * image_width_f);
-    const auto height =
-        static_cast<int>(normalized_bounding_box.height() * image_height_f);
+      const auto width =
+          static_cast<int>(normalized_bounding_box.width() * image_width_f);
+      const auto height =
+          static_cast<int>(normalized_bounding_box.height() * image_height_f);
 
-    bounding_box.x =
-        static_cast<int>(normalized_bounding_box.x_center() * image_width_f) -
-        (width >> 1);
-    bounding_box.y =
-        static_cast<int>(normalized_bounding_box.y_center() * image_height_f) -
-        (height >> 1);
-    bounding_box.width = width;
-    bounding_box.height = height;
-}
+      bounding_box.x =
+          static_cast<int>(normalized_bounding_box.x_center() * image_width_f) -
+          (width >> 1);
+      bounding_box.y =
+          static_cast<int>(normalized_bounding_box.y_center() * image_height_f) -
+          (height >> 1);
+      bounding_box.width = width;
+      bounding_box.height = height;
+  }
 
-mediapipe::Packet poses_packet;
-if (!poses_poller_ptr) {
-    return absl::CancelledError(
-        "Failed during getting next poses_packet. 1");
-}
+  // Get face poses.
+  if (!poses_poller_ptr ||
+      !poses_poller_ptr->Next(&poses_packet)) {
+      return absl::CancelledError(
+          "Failed during getting next poses_packet.");
+  }
 
-if (!poses_poller_ptr->Next(&poses_packet)) {
-    return absl::CancelledError(
-        "Failed during getting next poses_packet. 2");
-}
+  // Get face landmarks.
+  if (!landmarks_poller_ptr ||
+      !landmarks_poller_ptr->Next(&face_landmarks_packet)) {
+      return absl::CancelledError("Failed during getting next landmarks_packet.");
+  }
 
-auto& face_poses = poses_packet.Get<::std::vector<Eigen::Matrix4f>>();
-for (int i = 0; i < face_count_val; ++i) {
-    for (int k = 0; k < 4; ++k) {
-        for (int j = 0; j < 4; ++j) {
-            multi_face_poses[i].at<double>(k, j) = face_poses[i](k, j);
-        }
-    }
-}
-// Get face landmarks.
-if (!landmarks_poller_ptr ||
-    !landmarks_poller_ptr->Next(&face_landmarks_packet)) {
-    return absl::CancelledError("Failed during getting next landmarks_packet.");
-}
-
-*numFaces = face_count_val;
-face_count = face_count_val;
+  *numFaces = face_count_val;
+  face_count = face_count_val;
 
   return absl::OkStatus();
 }
 
 void MPFaceMeshDetector::DetectFaces(const cv::Mat &camera_frame,
                                      cv::Rect *multi_face_bounding_boxes,
-                                     cv::Mat *multi_face_poses,
+                                     int fps,
                                      int *numFaces) {
   const auto status =
-      DetectFacesWithStatus(camera_frame, multi_face_bounding_boxes, multi_face_poses, numFaces);
+      DetectFacesWithStatus(camera_frame, multi_face_bounding_boxes, fps, numFaces);
   if (!status.ok()) {
     LOG(INFO) << "MPFaceMeshDetector::DetectFaces failed: " << status.message();
   }
+}
+
+absl::Status MPFaceMeshDetector::DetectFacePosesWithStatus(cv::Mat* multi_face_poses) {
+  if (poses_packet.IsEmpty()) {
+      return absl::CancelledError("Face poses packet is empty.");
+  }
+  if (!multi_face_poses) {
+      return absl::InvalidArgumentError(
+          "MPFaceMeshDetector::DetectFacesWithStatus requires notnull pointer to "
+          "save results data.");
+  }
+  auto& face_poses = poses_packet.Get<::std::vector<Eigen::Matrix4f>>();
+  for (int i = 0; i < face_count; ++i) {
+      for (int k = 0; k < 4; ++k) {
+          for (int j = 0; j < 4; ++j) {
+              multi_face_poses[i].at<double>(k, j) = face_poses[i](k, j);
+          }
+      }
+  }
+
+    return absl::OkStatus();
+}
+
+void MPFaceMeshDetector::DetectFacePoses(cv::Mat* multi_face_poses, int* numFaces) {
+  *numFaces = 0;
+  const auto status = DetectFacePosesWithStatus(multi_face_poses);
+  if (!status.ok()) {
+      LOG(INFO) << "MPFaceMeshDetector::DetectFacePoses failed: "
+          << status.message();
+  }
+  *numFaces = face_count;
 }
 
 absl::Status MPFaceMeshDetector::DetectLandmarksWithStatus(
@@ -311,12 +341,13 @@ void MPFaceMeshDetector::DetectLandmarks(cv::Point3f **multi_face_landmarks,
 extern "C" {
 DLLEXPORT MPFaceMeshDetector *
 MPFaceMeshDetectorConstruct(int numFaces,
+    cv::Mat cameraMatrix,
     bool with_attention,
     const char* face_detection_model_path,
     const char* face_landmark_model_path,
     const char* face_landmark_model_with_attention_path,
     const char* geometry_pipeline_metadata_landmarks_path){
-  return new MPFaceMeshDetector(numFaces, with_attention, face_detection_model_path,
+  return new MPFaceMeshDetector(numFaces, cameraMatrix, with_attention, face_detection_model_path,
                                 face_landmark_model_path, face_landmark_model_with_attention_path,
                                 geometry_pipeline_metadata_landmarks_path);
 }
@@ -327,8 +358,14 @@ DLLEXPORT void MPFaceMeshDetectorDestruct(MPFaceMeshDetector *detector) {
 
 DLLEXPORT void MPFaceMeshDetectorDetectFaces(
     MPFaceMeshDetector *detector, const cv::Mat &camera_frame,
-    cv::Rect *multi_face_bounding_boxes, cv::Mat *multi_face_poses, int *numFaces) {
-  detector->DetectFaces(camera_frame, multi_face_bounding_boxes, multi_face_poses, numFaces);
+    cv::Rect *multi_face_bounding_boxes, int fps, int *numFaces) {
+  detector->DetectFaces(camera_frame, multi_face_bounding_boxes, fps, numFaces);
+}
+DLLEXPORT void
+MPFaceMeshDetectorDetectFacePoses(MPFaceMeshDetector* detector,
+                                  cv::Mat* multi_face_poses,
+                                  int* numFaces) {
+  detector->DetectFacePoses(multi_face_poses, numFaces);
 }
 DLLEXPORT void
 MPFaceMeshDetectorDetect2DLandmarks(MPFaceMeshDetector *detector,
@@ -353,9 +390,15 @@ const std::string MPFaceMeshDetector::graphConfig = R"pb(
 # Input image. (ImageFrame)
 input_stream: "input_video"
 
+# Camera calibration Matrix.
+input_stream: "camera_matrix"
+
+# Real-time frame per second.
+input_stream: "fps"
+
 # Collection of detected/processed faces, each represented as a list of
 # landmarks. (std::vector<NormalizedLandmarkList>)
-output_stream: "multi_face_landmarks"
+output_stream: "filtered_multi_face_landmarks"
 
 # Detected faces count. (int)
 output_stream: "face_count"
@@ -452,14 +495,33 @@ node {
   output_side_packet: "ENVIRONMENT:environment"
 }
 
+# Applies smoothing to a face landmark list. The filter options were handpicked
+# to achieve better visual results.
+node {
+  calculator: "MultiFaceLandmarksSmoothingCalculator"
+  input_stream: "NORM_MULTI_FACE_LANDMARKS:multi_face_landmarks"
+  input_stream: "IMAGE_SIZE:image_size"
+  input_stream: "FPS:fps"
+  output_stream: "NORM_FILTERED_MULTI_FACE_LANDMARKS:filtered_multi_face_landmarks"
+  node_options: {
+    [type.googleapis.com/mediapipe.LandmarksSmoothingCalculatorOptions] {
+      velocity_filter: {
+        window_size: 10
+        velocity_scale: 10.0
+      }
+    }
+  }
+}
+
 # Extracts face geometry for multiple faces from a vector of face landmark
 # lists.
 node {
   calculator: "FaceGeometryPipelineCalculatorWithPoseOutput"
   input_side_packet: "ENVIRONMENT:environment"
   input_side_packet: "WITH_ATTENTION:with_attention"
+  input_stream: "CAMERA_MATRIX:camera_matrix"
   input_stream: "IMAGE_SIZE:image_size"
-  input_stream: "MULTI_FACE_LANDMARKS:multi_face_landmarks"
+  input_stream: "MULTI_FACE_LANDMARKS:filtered_multi_face_landmarks"
   output_stream: "MULTI_FACE_POSES:multi_face_poses"
   options: {
     [mediapipe.FaceGeometryPipelineCalculatorOptions.ext] {
