@@ -147,7 +147,7 @@ cc_library(
         "//mediapipe/framework/port:ret_check",
         "//mediapipe/framework/port:status",
         "//mediapipe/framework/port:statusor",
-        "//mediapipe/modules/face_geometry/libs:geometry_pipeline",
+        "//mediapipe/modules/face_geometry/libs:geometry_pipeline_with_attention",
         "//mediapipe/modules/face_geometry/libs:validation_utils",
         "//mediapipe/modules/face_geometry/protos:environment_cc_proto",
         "//mediapipe/modules/face_geometry/protos:face_geometry_cc_proto",

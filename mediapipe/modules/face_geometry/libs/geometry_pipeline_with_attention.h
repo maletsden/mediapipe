@@ -18,8 +18,10 @@
 #include <memory>
 #include <vector>
 
+#include "Eigen/Core"
 #include "mediapipe/framework/formats/landmark.pb.h"
 #include "mediapipe/framework/port/statusor.h"
+#include "mediapipe/framework/port/opencv_core_inc.h"
 #include "mediapipe/modules/face_geometry/protos/environment.pb.h"
 #include "mediapipe/modules/face_geometry/protos/face_geometry.pb.h"
 #include "mediapipe/modules/face_geometry/protos/geometry_pipeline_metadata.pb.h"
@@ -47,9 +49,9 @@ class GeometryPipeline {
   // geometry pipeline metadata).
   //
   // Both `frame_width` and `frame_height` must be positive.
-  virtual absl::StatusOr<std::vector<FaceGeometry>> EstimateFaceGeometry(
+  virtual absl::StatusOr<std::vector<Eigen::Matrix4f>> EstimateFacePoses(
       const std::vector<NormalizedLandmarkList>& multi_face_landmarks,
-      int frame_width, int frame_height) const = 0;
+      bool with_attention, cv::Mat camera_matrix, int frame_width, int frame_height) const = 0;
 };
 
 // Creates an instance of `GeometryPipeline`.

@@ -36,13 +36,13 @@ cc_binary(
     name = "libmediapipe.so",
     linkshared = 1,
     linkstatic = 1,
-    srcs = ["face_mesh_lib.cpp", "face_mesh_lib.h"],
+    srcs = ["face_mesh_lib.cpp", "face_mesh_lib.h", "canonical_mesh.h"],
     deps = [
         "//mediapipe/framework:calculator_framework",
         "//mediapipe/framework/formats:image_frame",
         "//mediapipe/framework/formats:image_frame_opencv",
         "//mediapipe/framework/formats:landmark_cc_proto",
-	"//mediapipe/framework/formats:rect_cc_proto",
+	    "//mediapipe/framework/formats:rect_cc_proto",
         "//mediapipe/framework/port:file_helpers",
         "//mediapipe/framework/port:opencv_highgui",
         "//mediapipe/framework/port:opencv_imgproc",
@@ -58,6 +58,7 @@ cc_binary(
         "//mediapipe/calculators/util:local_file_contents_calculator",
         "//mediapipe/modules/face_landmark:face_landmark_front_side_model_cpu_with_face_counter",
         "//mediapipe/modules/face_geometry:geometry_pipeline_calculator_with_pose_output",
+		"//mediapipe/calculators/util:multi_face_landmarks_smoothing_calculator",
     ]
 )
 
