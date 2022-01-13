@@ -121,7 +121,7 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
                               static_cast<double>(cv::getTickFrequency()) * 1e6;
   MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
       kInputStream, mediapipe::Adopt(input_frame.release())
-      .At(mediapipe::Timestamp(frame_timestamp_us))));
+                        .At(mediapipe::Timestamp(frame_timestamp_us))));
   // Send calibration packet into the graph.
   //MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
   //    kInputStream_camera_matrix, mediapipe::MakePacket<cv::Mat>(m_cameraMatrix)
@@ -135,14 +135,14 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   mediapipe::Packet face_count_packet;
   if (!face_count_poller_ptr ||
       !face_count_poller_ptr->Next(&face_count_packet)) {
-      return absl::CancelledError(
-          "Failed during getting next face_count_packet.");
+    return absl::CancelledError(
+        "Failed during getting next face_count_packet.");
   }
 
-  auto& face_count_val = face_count_packet.Get<int>();
+  auto &face_count_val = face_count_packet.Get<int>();
 
   if (face_count_val <= 0) {
-      return absl::OkStatus();
+    return absl::OkStatus();
   }
 
   // Get face bounding boxes.
@@ -150,11 +150,11 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   if (!face_rects_from_landmarks_poller_ptr ||
       !face_rects_from_landmarks_poller_ptr->Next(
           &face_rects_from_landmarks_packet)) {
-      return absl::CancelledError(
-          "Failed during getting next face_rects_from_landmarks_packet.");
+    return absl::CancelledError(
+        "Failed during getting next face_rects_from_landmarks_packet.");
   }
 
-  auto& face_bounding_boxes =
+  auto &face_bounding_boxes =
       face_rects_from_landmarks_packet
           .Get<::std::vector<::mediapipe::NormalizedRect>>();
 
@@ -166,22 +166,22 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   // Convert vector<NormalizedRect> (center based Rects) to cv::Rect*
   // (leftTop based Rects).
   for (int i = 0; i < face_count_val; ++i) {
-      const auto& normalized_bounding_box = face_bounding_boxes[i];
-      auto& bounding_box = multi_face_bounding_boxes[i];
+    const auto &normalized_bounding_box = face_bounding_boxes[i];
+    auto& bounding_box = multi_face_bounding_boxes[i];
 
-      const auto width =
-          static_cast<int>(normalized_bounding_box.width() * image_width_f);
-      const auto height =
-          static_cast<int>(normalized_bounding_box.height() * image_height_f);
+    const auto width =
+        static_cast<int>(normalized_bounding_box.width() * image_width_f);
+    const auto height =
+        static_cast<int>(normalized_bounding_box.height() * image_height_f);
 
-      bounding_box.x =
-          static_cast<int>(normalized_bounding_box.x_center() * image_width_f) -
-          (width >> 1);
-      bounding_box.y =
-          static_cast<int>(normalized_bounding_box.y_center() * image_height_f) -
-          (height >> 1);
-      bounding_box.width = width;
-      bounding_box.height = height;
+    bounding_box.x =
+        static_cast<int>(normalized_bounding_box.x_center() * image_width_f) -
+        (width >> 1);
+    bounding_box.y =
+        static_cast<int>(normalized_bounding_box.y_center() * image_height_f) -
+        (height >> 1);
+    bounding_box.width = width;
+    bounding_box.height = height;
   }
 
   // Get face poses.
@@ -194,7 +194,7 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   // Get face landmarks.
   if (!landmarks_poller_ptr ||
       !landmarks_poller_ptr->Next(&face_landmarks_packet)) {
-      return absl::CancelledError("Failed during getting next landmarks_packet.");
+    return absl::CancelledError("Failed during getting next landmarks_packet.");
   }
 
   *numFaces = face_count_val;

@@ -1,15 +1,15 @@
 #include "face_mesh_lib.h"
 #include "canonical_mesh.h"
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   google::InitGoogleLogging(argv[0]);
   absl::ParseCommandLine(argc, argv);
 
-cv::VideoCapture capture;
-capture.open(0);
-if (!capture.isOpened()) {
-	return EXIT_FAILURE;
-}
+  cv::VideoCapture capture;
+  capture.open(0);
+  if (!capture.isOpened()) {
+    return EXIT_FAILURE;
+  }
 
   constexpr char kWindowName[] = "MediaPipe";
 
@@ -25,13 +25,13 @@ if (!capture.isOpened()) {
   // Maximum number of faces that can be detected
   constexpr int maxNumFaces = 1;
   constexpr char face_detection_model_path[] =
-  "mediapipe/modules/face_detection/face_detection_short_range.tflite";
+      "mediapipe/modules/face_detection/face_detection_short_range.tflite";
   constexpr char face_landmark_model_path[] =
-  "mediapipe/modules/face_landmark/face_landmark.tflite";
+      "mediapipe/modules/face_landmark/face_landmark.tflite";
   constexpr char face_landmark_with_attention_model_path[] =
-  "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite";
+      "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite";
   /*constexpr char geometry_pipeline_metadata_landmarks_path[] =
-  "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb";*/
+      "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb";*/
   constexpr bool with_attention = true;
 
   //double f_x = 640;
@@ -45,7 +45,7 @@ if (!capture.isOpened()) {
 	face_landmark_with_attention_model_path/*, geometry_pipeline_metadata_landmarks_path*/);
 
   // Allocate memory for face landmarks.
-  auto multiFaceLandmarks = new cv::Point2f * [maxNumFaces];
+  auto multiFaceLandmarks = new cv::Point2f *[maxNumFaces];
   for (int i = 0; i < maxNumFaces; ++i) {
     multiFaceLandmarks[i] = new cv::Point2f[MPFaceMeshDetectorLandmarksNum];
   }

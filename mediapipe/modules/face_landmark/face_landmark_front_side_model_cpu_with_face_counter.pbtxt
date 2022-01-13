@@ -16,6 +16,7 @@ type: "FaceLandmarkFrontSideModelCpu"
 
 # CPU image. (ImageFrame)
 input_stream: "IMAGE:image"
+
 # Max number of faces to detect/track. (int)
 input_side_packet: "NUM_FACES:num_faces"
 # TfLite model to detect faces.
@@ -52,6 +53,7 @@ output_stream: "ROIS_FROM_LANDMARKS:face_rects_from_landmarks"
 # Regions of interest calculated based on face detections.
 # (std::vector<NormalizedRect>)
 output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
+
 # (int)
 output_stream: "FACE_COUNT_FROM_LANDMARKS:face_count"
 
