@@ -42,7 +42,7 @@ cc_binary(
         "//mediapipe/framework/formats:image_frame",
         "//mediapipe/framework/formats:image_frame_opencv",
         "//mediapipe/framework/formats:landmark_cc_proto",
-	    "//mediapipe/framework/formats:rect_cc_proto",
+        "//mediapipe/framework/formats:rect_cc_proto",
         "//mediapipe/framework/port:file_helpers",
         "//mediapipe/framework/port:opencv_highgui",
         "//mediapipe/framework/port:opencv_imgproc",
@@ -58,7 +58,7 @@ cc_binary(
         "//mediapipe/calculators/util:local_file_contents_calculator",
         "//mediapipe/modules/face_landmark:face_landmark_front_side_model_cpu_with_face_counter",
         "//mediapipe/modules/face_geometry:geometry_pipeline_calculator_with_pose_output",
-		"//mediapipe/calculators/util:multi_face_landmarks_smoothing_calculator",
+        "//mediapipe/calculators/util:multi_face_landmarks_smoothing_calculator",
     ]
 )
 
