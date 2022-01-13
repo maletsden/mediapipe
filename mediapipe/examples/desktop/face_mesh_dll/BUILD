@@ -51,7 +51,7 @@ windows_dll_library(
         "//mediapipe/calculators/tflite:tflite_model_calculator",
         "//mediapipe/calculators/util:local_file_contents_calculator",
         "//mediapipe/modules/face_landmark:face_landmark_front_side_model_cpu_with_face_counter",
-	    "//mediapipe/modules/face_geometry:geometry_pipeline_calculator_with_pose_output",
+        "//mediapipe/modules/face_geometry:geometry_pipeline_calculator_with_pose_output",
 	    "//mediapipe/calculators/util:multi_face_landmarks_smoothing_calculator",
     ]
 )

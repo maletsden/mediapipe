@@ -63,40 +63,40 @@ int main(int argc, char **argv) {
   //cv::Mat transl_x = (cv::Mat_<double>(4, 4) << -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
   int fps = 30;
   while (grab_frames) {
-	// Capture opencv camera.
-	cv::Mat camera_frame_raw;
-	capture >> camera_frame_raw;
-	if (camera_frame_raw.empty()) {
-		LOG(INFO) << "Ignore empty frames from camera.";
-		continue;
-	}
+    // Capture opencv camera.
+    cv::Mat camera_frame_raw;
+    capture >> camera_frame_raw;
+    if (camera_frame_raw.empty()) {
+    	LOG(INFO) << "Ignore empty frames from camera.";
+    	continue;
+    }
 
-	cv::Mat camera_frame;
-	cv::cvtColor(camera_frame_raw, camera_frame, cv::COLOR_BGR2RGB);
+    cv::Mat camera_frame;
+    cv::cvtColor(camera_frame_raw, camera_frame, cv::COLOR_BGR2RGB);
 
-	int faceCount = 0;
+    int faceCount = 0;
 
-	MPFaceMeshDetectorDetectFaces(faceMeshDetector, camera_frame,
-		multiFaceBoundingBoxes.data(), fps, &faceCount);
+    MPFaceMeshDetectorDetectFaces(faceMeshDetector, camera_frame,
+    	multiFaceBoundingBoxes.data(), fps, &faceCount);
 
 	if (faceCount > 0) {
-		auto& face_bounding_box = multiFaceBoundingBoxes[0];
+    	auto& face_bounding_box = multiFaceBoundingBoxes[0];
 
-		cv::rectangle(camera_frame_raw, face_bounding_box, cv::Scalar(0, 255, 0),
-			3);
+    	cv::rectangle(camera_frame_raw, face_bounding_box, cv::Scalar(0, 255, 0),
+    		3);
 
-		int landmarksNum = 0;
-		MPFaceMeshDetectorDetect2DLandmarks(faceMeshDetector, multiFaceLandmarks,
-			&landmarksNum);
-		auto& face_landmarks = multiFaceLandmarks[0];
-		auto& landmark = face_landmarks[0];
+    	int landmarksNum = 0;
+    	MPFaceMeshDetectorDetect2DLandmarks(faceMeshDetector, multiFaceLandmarks,
+    		&landmarksNum);
+    	auto& face_landmarks = multiFaceLandmarks[0];
+    	auto& landmark = face_landmarks[0];
 
-		int numFaces = 0;
-		//MPFaceMeshDetectorDetectFacePoses(faceMeshDetector, multiFacePoses.data(), &numFaces);
+	    int numFaces = 0;
+	    //MPFaceMeshDetectorDetectFacePoses(faceMeshDetector, multiFacePoses.data(), &numFaces);
 
-		for (auto i = 0; i < 478; ++i) {
-			cv::circle(camera_frame_raw, face_landmarks[i], 1.2, cv::Scalar(0, 0, 255));
-		}
+	    for (auto i = 0; i < 478; ++i) {
+	    	cv::circle(camera_frame_raw, face_landmarks[i], 1.2, cv::Scalar(0, 0, 255));
+	    }
 
 		/*auto projectPoint = [&](auto& p) -> cv::Point2f
 		{
@@ -111,8 +111,8 @@ int main(int argc, char **argv) {
 			}
 		}*/
 
-		LOG(INFO) << "First landmark: x - " << landmark.x << ", y - "
-			<< landmark.y;
+	    LOG(INFO) << "First landmark: x - " << landmark.x << ", y - "
+	    	<< landmark.y;
 
 		/*if (!multiFacePoses.empty()) {
 			cv::Mat projected_point = transl_x * multiFacePoses[0].inv() * point;
@@ -143,18 +143,18 @@ int main(int argc, char **argv) {
 			}*/
 	}
 
-	const int pressed_key = cv::waitKey(5);
-	if (pressed_key >= 0 && pressed_key != 255)
-		grab_frames = false;
+    const int pressed_key = cv::waitKey(5);
+    if (pressed_key >= 0 && pressed_key != 255)
+    	grab_frames = false;
 
-	cv::imshow(kWindowName, camera_frame_raw);
+    cv::imshow(kWindowName, camera_frame_raw);
 }
 
 LOG(INFO) << "Shutting down.";
 
 // Deallocate memory for face landmarks.
 for (int i = 0; i < maxNumFaces; ++i) {
-	delete[] multiFaceLandmarks[i];
+  delete[] multiFaceLandmarks[i];
 }
 delete[] multiFaceLandmarks;
 

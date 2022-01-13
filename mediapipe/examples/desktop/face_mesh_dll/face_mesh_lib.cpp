@@ -167,7 +167,7 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   // (leftTop based Rects).
   for (int i = 0; i < face_count_val; ++i) {
     const auto &normalized_bounding_box = face_bounding_boxes[i];
-    auto& bounding_box = multi_face_bounding_boxes[i];
+    auto &bounding_box = multi_face_bounding_boxes[i];
 
     const auto width =
         static_cast<int>(normalized_bounding_box.width() * image_width_f);

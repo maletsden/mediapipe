@@ -78,7 +78,7 @@ cc_library(
         "//mediapipe/framework/port:statusor",
         "//mediapipe/modules/face_geometry/protos:environment_cc_proto",
         "//mediapipe/modules/face_geometry/protos:face_geometry_cc_proto",
-		"//mediapipe/framework/port:opencv_core",
+        "//mediapipe/framework/port:opencv_core",
         "//mediapipe/modules/face_geometry/protos:geometry_pipeline_metadata_cc_proto",
         "//mediapipe/modules/face_geometry/protos:mesh_3d_cc_proto",
         "@com_google_absl//absl/memory",
