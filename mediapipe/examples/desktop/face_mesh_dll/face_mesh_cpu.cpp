@@ -145,18 +145,18 @@ int main(int argc, char **argv) {
 
     const int pressed_key = cv::waitKey(5);
     if (pressed_key >= 0 && pressed_key != 255)
-    	grab_frames = false;
+      grab_frames = false;
 
     cv::imshow(kWindowName, camera_frame_raw);
-}
+  }
 
-LOG(INFO) << "Shutting down.";
+  LOG(INFO) << "Shutting down.";
 
-// Deallocate memory for face landmarks.
-for (int i = 0; i < maxNumFaces; ++i) {
-  delete[] multiFaceLandmarks[i];
-}
-delete[] multiFaceLandmarks;
+  // Deallocate memory for face landmarks.
+  for (int i = 0; i < maxNumFaces; ++i) {
+    delete[] multiFaceLandmarks[i];
+  }
+  delete[] multiFaceLandmarks;
 
-MPFaceMeshDetectorDestruct(faceMeshDetector);
+  MPFaceMeshDetectorDestruct(faceMeshDetector);
 }
