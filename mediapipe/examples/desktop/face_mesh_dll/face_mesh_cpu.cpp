@@ -30,19 +30,19 @@ if (!capture.isOpened()) {
   "mediapipe/modules/face_landmark/face_landmark.tflite";
   constexpr char face_landmark_with_attention_model_path[] =
   "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite";
-  constexpr char geometry_pipeline_metadata_landmarks_path[] =
-  "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb";
+  /*constexpr char geometry_pipeline_metadata_landmarks_path[] =
+  "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb";*/
   constexpr bool with_attention = true;
 
-  double f_x = 640;
-  double f_y = 640;
-  double c_x = 320;
-  double c_y = 240;
-  cv::Mat camera_matrix = (cv::Mat_<double>(3, 3) << f_x, 0.0, c_x, 0.0, f_y, c_y, 0.0, 0.0, 1.0);
+  //double f_x = 640;
+  //double f_y = 640;
+  //double c_x = 320;
+  //double c_y = 240;
+  //cv::Mat camera_matrix = (cv::Mat_<double>(3, 3) << f_x, 0.0, c_x, 0.0, f_y, c_y, 0.0, 0.0, 1.0);
 
   MPFaceMeshDetector* faceMeshDetector = MPFaceMeshDetectorConstruct(
-	maxNumFaces, camera_matrix, with_attention, face_detection_model_path, face_landmark_model_path,
-	face_landmark_with_attention_model_path, geometry_pipeline_metadata_landmarks_path);
+	maxNumFaces, /*camera_matrix,*/ with_attention, face_detection_model_path, face_landmark_model_path,
+	face_landmark_with_attention_model_path/*, geometry_pipeline_metadata_landmarks_path*/);
 
   // Allocate memory for face landmarks.
   auto multiFaceLandmarks = new cv::Point2f * [maxNumFaces];
@@ -51,16 +51,16 @@ if (!capture.isOpened()) {
   }
 
   std::vector<cv::Rect> multiFaceBoundingBoxes(maxNumFaces);
-  std::vector<cv::Mat> multiFacePoses(maxNumFaces, cv::Mat::zeros(4, 4, CV_64F));
+  //std::vector<cv::Mat> multiFacePoses(maxNumFaces, cv::Mat::zeros(4, 4, CV_64F));
 
   LOG(INFO) << "FaceMeshDetector constructed.";
 
   LOG(INFO) << "Start grabbing and processing frames.";
   bool grab_frames = true;
 
-  cv::Mat transl_y = (cv::Mat_<double>(4, 4) << 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
-  cv::Mat transl_z = (cv::Mat_<double>(4, 4) << 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
-  cv::Mat transl_x = (cv::Mat_<double>(4, 4) << -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+  //cv::Mat transl_y = (cv::Mat_<double>(4, 4) << 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+  //cv::Mat transl_z = (cv::Mat_<double>(4, 4) << 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+  //cv::Mat transl_x = (cv::Mat_<double>(4, 4) << -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
   int fps = 30;
   while (grab_frames) {
 	// Capture opencv camera.
@@ -92,7 +92,7 @@ if (!capture.isOpened()) {
 		auto& landmark = face_landmarks[0];
 
 		int numFaces = 0;
-		MPFaceMeshDetectorDetectFacePoses(faceMeshDetector, multiFacePoses.data(), &numFaces);
+		//MPFaceMeshDetectorDetectFacePoses(faceMeshDetector, multiFacePoses.data(), &numFaces);
 
 		for (auto i = 0; i < 478; ++i) {
 			cv::circle(camera_frame_raw, face_landmarks[i], 1.2, cv::Scalar(0, 0, 255));
