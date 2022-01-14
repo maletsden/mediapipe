@@ -63,6 +63,30 @@ cc_library(
 )
 
 cc_library(
+    name = "geometry_pipeline_with_attention",
+    srcs = ["geometry_pipeline_with_attention.cc"],
+    hdrs = ["geometry_pipeline_with_attention.h"],
+    deps = [
+        ":mesh_3d_utils",
+        ":procrustes_solver",
+        ":validation_utils",
+        "//mediapipe/framework/formats:landmark_cc_proto",
+        "//mediapipe/framework/formats:matrix",
+        "//mediapipe/framework/formats:matrix_data_cc_proto",
+        "//mediapipe/framework/port:ret_check",
+        "//mediapipe/framework/port:status",
+        "//mediapipe/framework/port:statusor",
+        "//mediapipe/modules/face_geometry/protos:environment_cc_proto",
+        "//mediapipe/modules/face_geometry/protos:face_geometry_cc_proto",
+        "//mediapipe/framework/port:opencv_core",
+        "//mediapipe/modules/face_geometry/protos:geometry_pipeline_metadata_cc_proto",
+        "//mediapipe/modules/face_geometry/protos:mesh_3d_cc_proto",
+        "@com_google_absl//absl/memory",
+        "@eigen_archive//:eigen3",
+    ],
+)
+
+cc_library(
     name = "mesh_3d_utils",
     srcs = ["mesh_3d_utils.cc"],
     hdrs = ["mesh_3d_utils.h"],

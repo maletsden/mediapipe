@@ -933,7 +933,7 @@ cc_library(
 
 cc_library(
     name = "multi_face_landmarks_smoothing_calculator",
-    srcs = ["multi_face_landmarks_smoothing_calculator.cc"],
+    srcs = ["multi_face_landmarks_smoothing_calculator.h"],
     visibility = ["//visibility:public"],
     deps = [
         ":landmarks_smoothing_calculator_cc_proto",

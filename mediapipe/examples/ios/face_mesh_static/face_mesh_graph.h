@@ -47,6 +47,7 @@
 
 #include "mediapipe/modules/face_geometry/env_generator_calculator.h"
 #include "mediapipe/modules/face_geometry/geometry_pipeline_calculator_with_pose_output.h"
+#include "mediapipe/calculators/util/multi_face_landmarks_smoothing_calculator.h"
 
 namespace face_mesh_graph {
   void staticLinkAllCalculators() {
@@ -98,6 +99,7 @@ namespace face_mesh_graph {
     
     typeid(::mediapipe::FaceGeometryEnvGeneratorCalculator);
     typeid(::mediapipe::FaceGeometryPipelineCalculatorWithPoseOutput);
+    typeid(::mediapipe::MultiFaceLandmarksSmoothingCalculator);
   }
 
 std::string graphConfig = R"pb(
@@ -105,6 +107,12 @@ std::string graphConfig = R"pb(
 
 # Input image. (ImageFrame)
 input_stream: "input_video"
+
+# Camera calibration Matrix.
+# input_stream: "camera_matrix"
+
+# Real-time frame per second.
+input_stream: "fps"
 
 # Max number of faces to detect/process. (int)
 input_side_packet: "num_faces"
@@ -120,7 +128,7 @@ input_side_packet: "face_landmark_model_path"
 
 # Collection of detected/processed faces, each represented as a list of
 # landmarks. (std::vector<NormalizedLandmarkList>)
-output_stream: "multi_face_landmarks"
+output_stream: "filtered_multi_face_landmarks"
 
 # Detected faces count. (int)
 output_stream: "face_count"
@@ -129,7 +137,9 @@ output_stream: "face_count"
 # (std::vector<NormalizedRect>)
 output_stream: "face_rects_from_landmarks"
 
-output_stream: "multi_face_poses"
+# A vector of face pose data.
+# std::vector<Eigen::Matrix4f>
+#output_stream: "multi_face_poses"
 
 node {
   calculator: "FlowLimiterCalculator"
@@ -599,22 +609,22 @@ node {
   output_stream: "ITERABLE:multi_face_landmarks"
 }
 
-node {
-  calculator: "FaceGeometryEnvGeneratorCalculator"
-  output_side_packet: "ENVIRONMENT:environment"
-  node_options: {
-    [type.googleapis.com/mediapipe.FaceGeometryEnvGeneratorCalculatorOptions] {
-      environment: {
-        origin_point_location: TOP_LEFT_CORNER
-        perspective_camera: {
-          vertical_fov_degrees: 75.0  # 75 degrees
-          near: 1.0  # 1cm
-          far: 1000.0  # 10m
-        }
-      }
-    }
-  }
-}
+#node {
+#  calculator: "FaceGeometryEnvGeneratorCalculator"
+#  output_side_packet: "ENVIRONMENT:environment"
+#  node_options: {
+#    [type.googleapis.com/mediapipe.FaceGeometryEnvGeneratorCalculatorOptions] {
+#      environment: {
+#        origin_point_location: TOP_LEFT_CORNER
+#        perspective_camera: {
+#          vertical_fov_degrees: 75.0  # 75 degrees
+#          near: 1.0  # 1cm
+#          far: 1000.0  # 10m
+#        }
+#      }
+#    }
+#  }
+#}
 
 node {
   calculator: "EndLoopNormalizedRectCalculator"
@@ -634,19 +644,38 @@ node {
   output_stream: "PREV_LOOP:prev_face_rects_from_landmarks"
 }
 
+# Applies smoothing to a face landmark list. The filter options were handpicked
+# to achieve better visual results.
 node {
-  calculator: "FaceGeometryPipelineCalculatorWithPoseOutput"
-  input_side_packet: "ENVIRONMENT:environment"
-  input_side_packet: "WITH_ATTENTION:with_attention"
+  calculator: "MultiFaceLandmarksSmoothingCalculator"
+  input_stream: "NORM_MULTI_FACE_LANDMARKS:multi_face_landmarks"
   input_stream: "IMAGE_SIZE:image_size"
-  input_stream: "MULTI_FACE_LANDMARKS:multi_face_landmarks"
-  output_stream: "MULTI_FACE_POSES:multi_face_poses"
-  options: {
-    [mediapipe.FaceGeometryPipelineCalculatorOptions.ext] {
-      metadata_path: "$geometryPipelineMetadataLandmarksPath"
+  input_stream: "FPS:fps"
+  output_stream: "NORM_FILTERED_MULTI_FACE_LANDMARKS:filtered_multi_face_landmarks"
+  node_options: {
+    [type.googleapis.com/mediapipe.LandmarksSmoothingCalculatorOptions] {
+      velocity_filter: {
+        window_size: 10
+        velocity_scale: 10.0
+      }
     }
   }
+}
 
+#node {
+#  calculator: "FaceGeometryPipelineCalculatorWithPoseOutput"
+#  input_side_packet: "ENVIRONMENT:environment"
+#  input_side_packet: "WITH_ATTENTION:with_attention"
+#  input_stream: "CAMERA_MATRIX:camera_matrix"
+#  input_stream: "IMAGE_SIZE:image_size"
+#  input_stream: "MULTI_FACE_LANDMARKS:multi_face_landmarks"
+#  output_stream: "MULTI_FACE_POSES:multi_face_poses"
+#  options: {
+#    [mediapipe.FaceGeometryPipelineCalculatorOptions.ext] {
+#      metadata_path: "$geometryPipelineMetadataLandmarksPath"
+#    }
+#  }
+#}
 )pb";
 }
 

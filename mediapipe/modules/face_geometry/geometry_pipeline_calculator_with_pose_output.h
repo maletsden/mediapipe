@@ -12,7 +12,7 @@
 #include "mediapipe/framework/port/status_macros.h"
 #include "mediapipe/framework/port/statusor.h"
 #include "mediapipe/modules/face_geometry/geometry_pipeline_calculator.pb.h"
-#include "mediapipe/modules/face_geometry/libs/geometry_pipeline.h"
+#include "mediapipe/modules/face_geometry/libs/geometry_pipeline_with_attention.h"
 #include "mediapipe/modules/face_geometry/libs/validation_utils.h"
 #include "mediapipe/modules/face_geometry/protos/environment.pb.h"
 #include "mediapipe/modules/face_geometry/protos/face_geometry.pb.h"
@@ -22,7 +22,9 @@
 namespace mediapipe {
 namespace {
 
+static constexpr char kEnvironmentTag[] = "ENVIRONMENT";
 static constexpr char kWithAttentionTag[] = "WITH_ATTENTION";
+static constexpr char kCameraMatrixTag[] = "CAMERA_MATRIX";
 static constexpr char kImageSizeTag[] = "IMAGE_SIZE";
 static constexpr char kMultiFacePosesTag[] = "MULTI_FACE_POSES";
 static constexpr char kMultiFaceLandmarksTag[] = "MULTI_FACE_LANDMARKS";
@@ -58,14 +60,13 @@ static constexpr char kMultiFaceLandmarksTag[] = "MULTI_FACE_LANDMARKS";
 //     `face_geometry.GeometryPipelineMetadata` proto.
 //
 class GeometryPipelineCalculator : public CalculatorBase {
-private:
-    static constexpr char kEnvironmentTag[] = "ENVIRONMENT";
  public:
   static absl::Status GetContract(CalculatorContract* cc) {
     cc->InputSidePackets()
         .Tag(kEnvironmentTag)
         .Set<face_geometry::Environment>();
     cc->InputSidePackets().Tag(kWithAttentionTag).Set<bool>();
+    cc->Inputs().Tag(kCameraMatrixTag).Set<cv::Mat>();
     cc->Inputs().Tag(kImageSizeTag).Set<std::pair<int, int>>();
     cc->Inputs()
         .Tag(kMultiFaceLandmarksTag)
@@ -110,12 +111,15 @@ private:
     // to have a non-empty packet. In case this requirement is not met, there's
     // nothing to be processed at the current timestamp.
     if (cc->Inputs().Tag(kImageSizeTag).IsEmpty() ||
-        cc->Inputs().Tag(kMultiFaceLandmarksTag).IsEmpty()) {
+        cc->Inputs().Tag(kMultiFaceLandmarksTag).IsEmpty() ||
+        cc->Inputs().Tag(kCameraMatrixTag).IsEmpty()) {
       return absl::OkStatus();
     }
 
     const bool& with_attention =
         cc->InputSidePackets().Tag(kWithAttentionTag).Get<bool>();
+    const auto& camera_matrix =
+        cc->Inputs().Tag(kCameraMatrixTag).Get<cv::Mat>();
     const auto& image_size =
         cc->Inputs().Tag(kImageSizeTag).Get<std::pair<int, int>>();
     const auto& multi_face_landmarks =
@@ -130,6 +134,7 @@ private:
         geometry_pipeline_->EstimateFacePoses(
             multi_face_landmarks,  //
             with_attention,
+            camera_matrix,
             /*frame_width*/ image_size.first,
             /*frame_height*/ image_size.second),
         _ << "Failed to estimate face pose for multiple faces!");
