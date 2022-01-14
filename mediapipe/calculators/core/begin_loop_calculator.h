@@ -187,6 +187,15 @@ class BeginLoopCalculator : public CalculatorBase {
     typedef BeginLoopCalculator<std::vector<Matrix>> BeginLoopMatrixCalculator;
     REGISTER_CALCULATOR(BeginLoopMatrixCalculator);
 
+// A calculator to process std::vector<std::vector<Matrix>>.
+    typedef BeginLoopCalculator<std::vector<std::vector<Matrix>>>
+    BeginLoopMatrixVectorCalculator;
+    REGISTER_CALCULATOR(BeginLoopMatrixVectorCalculator);
+
+// A calculator to process std::vector<uint64_t>.
+    typedef BeginLoopCalculator<std::vector<uint64_t>> BeginLoopUint64tCalculator;
+    REGISTER_CALCULATOR(BeginLoopUint64tCalculator);
+
 }  // namespace mediapipe
 
 #endif  // MEDIAPIPE_CALCULATORS_CORE_BEGIN_LOOP_CALCULATOR_H_

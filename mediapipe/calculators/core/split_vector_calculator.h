@@ -309,6 +309,9 @@ class SplitVectorCalculator : public CalculatorBase {
             SplitClassificationListVectorCalculator;
     REGISTER_CALCULATOR(SplitClassificationListVectorCalculator);
 
+    typedef SplitVectorCalculator<uint64_t, false> SplitUint64tVectorCalculator;
+    REGISTER_CALCULATOR(SplitUint64tVectorCalculator);
+
 }  // namespace mediapipe
 
 #endif  // MEDIAPIPE_CALCULATORS_CORE_SPLIT_VECTOR_CALCULATOR_H_
