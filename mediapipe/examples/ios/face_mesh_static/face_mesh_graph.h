@@ -45,6 +45,8 @@
 #include "mediapipe/framework/stream_handler/immediate_input_stream_handler.h"
 #include "mediapipe/framework/tool/switch_container.h"
 
+#include "mediapipe/modules/face_geometry/env_generator_calculator.h"
+#include "mediapipe/modules/face_geometry/geometry_pipeline_calculator_with_pose_output.h"
 
 namespace face_mesh_graph {
   void staticLinkAllCalculators() {
@@ -93,7 +95,9 @@ namespace face_mesh_graph {
     typeid(::mediapipe::DefaultInputStreamHandler);
     typeid(::mediapipe::ImmediateInputStreamHandler);
     typeid(::mediapipe::tool::SwitchContainer);
-
+    
+    typeid(::mediapipe::FaceGeometryEnvGeneratorCalculator);
+    typeid(::mediapipe::FaceGeometryPipelineCalculatorWithPoseOutput);
   }
 
 std::string graphConfig = R"pb(
@@ -124,6 +128,8 @@ output_stream: "face_count"
 # Regions of interest calculated based on landmarks.
 # (std::vector<NormalizedRect>)
 output_stream: "face_rects_from_landmarks"
+
+output_stream: "multi_face_poses"
 
 node {
   calculator: "FlowLimiterCalculator"
@@ -544,24 +550,16 @@ node {
   output_stream: "NORM_LANDMARKS:face_landmarks"
 }
 
-
 # ------ FaceLandmarkSideModelCpu End ------ #
-
-
 
 # ------ FaceLandmarksToRoi Start ------ #
 
-
-# Converts face landmarks to a detection that tightly encloses all landmarks.
 node {
   calculator: "LandmarksToDetectionCalculator"
   input_stream: "NORM_LANDMARKS:face_landmarks"
   output_stream: "DETECTION:face_landmarks_to_roi__face_detection"
 }
 
-# Converts the face detection into a rectangle (normalized by image size)
-# that encloses the face and is rotated such that the line connecting left side
-# of the left eye and right side of the right eye is aligned with the X-axis of
 # the rectangle.
 node {
   calculator: "DetectionsToRectsCalculator"
@@ -577,8 +575,6 @@ node {
   }
 }
 
-# Expands the face rectangle so that in the next video image it's likely to
-# still contain the face even with some motion.
 node {
   calculator: "RectTransformationCalculator"
   input_stream: "NORM_RECT:face_landmarks_to_roi__face_rect_from_landmarks"
@@ -596,10 +592,6 @@ node {
 
 # ------ FaceLandmarksToRoi End ------ #
 
-
-# Collects a set of landmarks for each face into a vector. Upon receiving the
-# BATCH_END timestamp, outputs the vector of landmarks at the BATCH_END
-# timestamp.
 node {
   calculator: "EndLoopNormalizedLandmarkListVectorCalculator"
   input_stream: "ITEM:face_landmarks"
@@ -607,9 +599,23 @@ node {
   output_stream: "ITERABLE:multi_face_landmarks"
 }
 
-# Collects a NormalizedRect for each face into a vector. Upon receiving the
-# BATCH_END timestamp, outputs the vector of NormalizedRect at the BATCH_END
-# timestamp.
+node {
+  calculator: "FaceGeometryEnvGeneratorCalculator"
+  output_side_packet: "ENVIRONMENT:environment"
+  node_options: {
+    [type.googleapis.com/mediapipe.FaceGeometryEnvGeneratorCalculatorOptions] {
+      environment: {
+        origin_point_location: TOP_LEFT_CORNER
+        perspective_camera: {
+          vertical_fov_degrees: 75.0  # 75 degrees
+          near: 1.0  # 1cm
+          far: 1000.0  # 10m
+        }
+      }
+    }
+  }
+}
+
 node {
   calculator: "EndLoopNormalizedRectCalculator"
   input_stream: "ITEM:face_rect_from_landmarks"
@@ -617,11 +623,6 @@ node {
   output_stream: "ITERABLE:face_rects_from_landmarks"
 }
 
-# Caches face rects calculated from landmarks, and upon the arrival of the next
-# input image, sends out the cached rects with timestamps replaced by that of
-# the input image, essentially generating a packet that carries the previous
-# face rects. Note that upon the arrival of the very first input image, a
-# timestamp bound update occurs to jump start the feedback loop.
 node {
   calculator: "PreviousLoopbackCalculator"
   input_stream: "MAIN:input_video"
@@ -633,6 +634,18 @@ node {
   output_stream: "PREV_LOOP:prev_face_rects_from_landmarks"
 }
 
+node {
+  calculator: "FaceGeometryPipelineCalculatorWithPoseOutput"
+  input_side_packet: "ENVIRONMENT:environment"
+  input_side_packet: "WITH_ATTENTION:with_attention"
+  input_stream: "IMAGE_SIZE:image_size"
+  input_stream: "MULTI_FACE_LANDMARKS:multi_face_landmarks"
+  output_stream: "MULTI_FACE_POSES:multi_face_poses"
+  options: {
+    [mediapipe.FaceGeometryPipelineCalculatorOptions.ext] {
+      metadata_path: "$geometryPipelineMetadataLandmarksPath"
+    }
+  }
 
 )pb";
 }

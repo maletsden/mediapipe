@@ -211,6 +211,106 @@ class ScreenToMetricSpaceConverter {
     return absl::OkStatus();
   }
 
+    absl::Status ConvertWithAttention(const NormalizedLandmarkList& screen_landmark_list,  //
+          bool with_attention,
+          const PerspectiveCameraFrustum& pcf,                 //
+          LandmarkList& metric_landmark_list,                  //
+          Eigen::Matrix4f& pose_transform_mat) const {
+          auto landmarks_size = screen_landmark_list.landmark_size() - (with_attention ? 10 : 0);
+          RET_CHECK_EQ(landmarks_size,
+              canonical_metric_landmarks_.cols())
+              << "The number of landmarks doesn't match the number passed upon "
+              "initialization!";
+
+          Eigen::Matrix3Xf screen_landmarks;
+          //ConvertLandmarkListToEigenMatrix(screen_landmark_list, screen_landmarks);
+          screen_landmarks = Eigen::Matrix3Xf(3, landmarks_size);
+          for (int i = 0; i < landmarks_size; ++i) {
+              const auto& landmark = screen_landmark_list.landmark(i);
+              screen_landmarks(0, i) = landmark.x();
+              screen_landmarks(1, i) = landmark.y();
+              screen_landmarks(2, i) = landmark.z();
+          }
+
+          ProjectXY(pcf, screen_landmarks);
+          const float depth_offset = screen_landmarks.row(2).mean();
+
+          // 1st iteration: don't unproject XY because it's unsafe to do so due to
+          //                the relative nature of the Z coordinate. Instead, run the
+          //                first estimation on the projected XY and use that scale to
+          //                unproject for the 2nd iteration.
+          Eigen::Matrix3Xf intermediate_landmarks(screen_landmarks);
+          ChangeHandedness(intermediate_landmarks);
+
+          ASSIGN_OR_RETURN(const float first_iteration_scale,
+              EstimateScale(intermediate_landmarks),
+              _ << "Failed to estimate first iteration scale!");
+
+          // 2nd iteration: unproject XY using the scale from the 1st iteration.
+          intermediate_landmarks = screen_landmarks;
+          MoveAndRescaleZ(pcf, depth_offset, first_iteration_scale,
+              intermediate_landmarks);
+          UnprojectXY(pcf, intermediate_landmarks);
+          ChangeHandedness(intermediate_landmarks);
+
+          // For face detection input landmarks, re-write Z-coord from the canonical
+          // landmarks.
+          if (input_source_ == InputSource::FACE_DETECTION_PIPELINE) {
+              Eigen::Matrix4f intermediate_pose_transform_mat;
+              MP_RETURN_IF_ERROR(procrustes_solver_->SolveWeightedOrthogonalProblem(
+                  canonical_metric_landmarks_, intermediate_landmarks,
+                  landmark_weights_, intermediate_pose_transform_mat))
+                  << "Failed to estimate pose transform matrix!";
+
+              intermediate_landmarks.row(2) =
+                  (intermediate_pose_transform_mat *
+                      canonical_metric_landmarks_.colwise().homogeneous())
+                  .row(2);
+          }
+          ASSIGN_OR_RETURN(const float second_iteration_scale,
+              EstimateScale(intermediate_landmarks),
+              _ << "Failed to estimate second iteration scale!");
+
+          // Use the total scale to unproject the screen landmarks.
+          const float total_scale = first_iteration_scale * second_iteration_scale;
+          MoveAndRescaleZ(pcf, depth_offset, total_scale, screen_landmarks);
+          UnprojectXY(pcf, screen_landmarks);
+          ChangeHandedness(screen_landmarks);
+
+          // At this point, screen landmarks are converted into metric landmarks.
+          Eigen::Matrix3Xf& metric_landmarks = screen_landmarks;
+
+          MP_RETURN_IF_ERROR(procrustes_solver_->SolveWeightedOrthogonalProblem(
+              canonical_metric_landmarks_, metric_landmarks, landmark_weights_,
+              pose_transform_mat))
+              << "Failed to estimate pose transform matrix!";
+
+          // For face detection input landmarks, re-write Z-coord from the canonical
+          // landmarks and run the pose transform estimation again.
+          if (input_source_ == InputSource::FACE_DETECTION_PIPELINE) {
+              metric_landmarks.row(2) =
+                  (pose_transform_mat *
+                      canonical_metric_landmarks_.colwise().homogeneous())
+                  .row(2);
+
+              MP_RETURN_IF_ERROR(procrustes_solver_->SolveWeightedOrthogonalProblem(
+                  canonical_metric_landmarks_, metric_landmarks, landmark_weights_,
+                  pose_transform_mat))
+                  << "Failed to estimate pose transform matrix!";
+          }
+
+          // Multiply each of the metric landmarks by the inverse pose
+          // transformation matrix to align the runtime metric face landmarks with
+          // the canonical metric face landmarks.
+          metric_landmarks = (pose_transform_mat.inverse() *
+              metric_landmarks.colwise().homogeneous())
+              .topRows(3);
+
+          ConvertEigenMatrixToLandmarkList(metric_landmarks, metric_landmark_list);
+
+          return absl::OkStatus();
+      }
+    
  private:
   void ProjectXY(const PerspectiveCameraFrustum& pcf,
                  Eigen::Matrix3Xf& landmarks) const {
@@ -366,6 +466,43 @@ class GeometryPipelineImpl : public GeometryPipeline {
     return multi_face_geometry;
   }
 
+    absl::StatusOr<std::vector<Eigen::Matrix4f>> EstimateFacePoses(
+          const std::vector<NormalizedLandmarkList>& multi_face_landmarks,
+          bool with_attention, int frame_width, int frame_height) const override {
+          MP_RETURN_IF_ERROR(ValidateFrameDimensions(frame_width, frame_height))
+              << "Invalid frame dimensions!";
+
+          // Create a perspective camera frustum to be shared for geometry estimation
+          // per each face.
+          PerspectiveCameraFrustum pcf(perspective_camera_, frame_width,
+              frame_height);
+
+          std::vector<Eigen::Matrix4f> multi_face_poses;
+          // From this point, the meaning of "face landmarks" is clarified further as
+          // "screen face landmarks". This is done do distinguish from "metric face
+          // landmarks" that are derived during the face geometry estimation process.
+          for (const NormalizedLandmarkList& screen_face_landmarks :
+              multi_face_landmarks) {
+              int i = 0;
+              // Having a too compact screen landmark list will result in numerical
+              // instabilities, therefore such faces are filtered.
+              if (IsScreenLandmarkListTooCompact(screen_face_landmarks)) {
+                  continue;
+              }
+
+              // Convert the screen landmarks into the metric landmarks and get the pose
+              // transformation matrix.
+              LandmarkList metric_face_landmarks;
+              Eigen::Matrix4f pose_transform_mat;
+              MP_RETURN_IF_ERROR(space_converter_->ConvertWithAttention(screen_face_landmarks, with_attention, pcf,
+                  metric_face_landmarks,
+                  pose_transform_mat))
+                  << "Failed to convert landmarks from the screen to the metric space!";
+              multi_face_poses.push_back(pose_transform_mat);
+          }
+          return multi_face_poses;
+      }
+    
  private:
   static bool IsScreenLandmarkListTooCompact(
       const NormalizedLandmarkList& screen_landmarks) {

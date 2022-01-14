@@ -1,5 +1,6 @@
 #include "face_mesh_lib.h"
 #include "face_mesh_graph.h"
+#include "Eigen/Core"
 
 int MPFaceMeshDetector::kLandmarksNum = 468;
 
@@ -7,13 +8,15 @@ MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
     bool with_attention,
     const char* face_detection_model_path,
     const char* face_landmark_model_path,
-    const char* face_landmark_with_attention_model_path) {
+    const char* face_landmark_with_attention_model_path,
+    const char* geometry_pipeline_metadata_landmarks_path) {
     const auto status = InitFaceMeshDetector(
         numFaces,
         with_attention,
         face_detection_model_path,
         face_landmark_model_path,
-        face_landmark_with_attention_model_path);
+        face_landmark_with_attention_model_path,
+        geometry_pipeline_metadata_landmarks_path);
     if (!status.ok()) {
         LOG(INFO) << "Failed constructing FaceMeshDetector.";
         LOG(INFO) << status.message();
@@ -28,7 +31,8 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
     bool with_attention,
     const char* face_detection_model_path,
     const char* face_landmark_model_path,
-    const char* face_landmark_with_attention_model_path) {
+    const char* face_landmark_with_attention_model_path,
+    const char* geometry_pipeline_metadata_landmarks_path) {
     numFaces = std::max(numFaces, 1);
     const char* SplitTensorVectorCalculator =
     R""""(
@@ -372,12 +376,11 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
     }
     std::string TensorsToLandmarksStr = "$TensorsToLandmarksSubgraph";
     std::string SplitTensorVectorStr = "$SplitTensorVectorCalculator";
-    auto preparedGraphConfig = face_mesh_graph::graphConfig.replace(
-                                                                    face_mesh_graph::graphConfig.find(TensorsToLandmarksStr), TensorsToLandmarksStr.size(), with_attention ? TensorsToLandmarksWithAttentionSubgraph : TensorsToLandmarksSubgraph);
-    preparedGraphConfig = preparedGraphConfig.replace(
-                                                                    face_mesh_graph::graphConfig.find(SplitTensorVectorStr), SplitTensorVectorStr.size(), with_attention ? SplitTensorVectorCalculatorWithAttention : SplitTensorVectorCalculator);
-    //auto preparedGraphConfig = absl::StrReplaceAll(
-    //                    face_mesh_graph::graphConfig, { {"$TensorsToLandmarksSubgraph", with_attention ? TensorsToLandmarksWithAttentionSubgraph : //TensorsToLandmarksSubgraph} });
+    std::string GeometryPipelineMetadataLandmarksPathStr = "$geometryPipelineMetadataLandmarksPath";
+    auto preparedGraphConfig = face_mesh_graph::graphConfig.replace(face_mesh_graph::graphConfig.find(TensorsToLandmarksStr), TensorsToLandmarksStr.size(), with_attention ? TensorsToLandmarksWithAttentionSubgraph : TensorsToLandmarksSubgraph);
+    preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(SplitTensorVectorStr), SplitTensorVectorStr.size(), with_attention ? SplitTensorVectorCalculatorWithAttention : SplitTensorVectorCalculator);
+    preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(GeometryPipelineMetadataLandmarksPathStr), GeometryPipelineMetadataLandmarksPathStr.size(), geometry_pipeline_metadata_landmarks_path);
+    
     LOG(INFO) << "Get calculator graph config contents: " << preparedGraphConfig;
     
     mediapipe::CalculatorGraphConfig config =
@@ -402,7 +405,10 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
     ASSIGN_OR_RETURN(
         mediapipe::OutputStreamPoller face_rects_from_landmarks_poller,
         graph.AddOutputStreamPoller(kOutputStream_face_rects_from_landmarks));
-
+    ASSIGN_OR_RETURN(
+            mediapipe::OutputStreamPoller poses_poller,
+            graph.AddOutputStreamPoller(kOutputStream_poses));
+    
     landmarks_poller_ptr = std::make_unique<mediapipe::OutputStreamPoller>(
         std::move(landmarks_poller));
     face_count_poller_ptr = std::make_unique<mediapipe::OutputStreamPoller>(
@@ -410,6 +416,8 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
     face_rects_from_landmarks_poller_ptr =
         std::make_unique<mediapipe::OutputStreamPoller>(
             std::move(face_rects_from_landmarks_poller));
+    poses_poller_ptr = std::make_unique<mediapipe::OutputStreamPoller>(
+            std::move(poses_poller));
 
     MP_RETURN_IF_ERROR(graph.StartRun({}));
 
@@ -421,8 +429,9 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
 absl::Status
 MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat& camera_frame,
     cv::Rect* multi_face_bounding_boxes,
+    cv::Mat *multi_face_poses,
     int* numFaces) {
-    if (!numFaces || !multi_face_bounding_boxes) {
+    if (!numFaces || !multi_face_bounding_boxes || !multi_face_poses) {
         return absl::InvalidArgumentError(
             "MPFaceMeshDetector::DetectFacesWithStatus requires notnull pointer to "
             "save results data.");
@@ -498,7 +507,27 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat& camera_frame,
         bounding_box.width = width;
         bounding_box.height = height;
     }
+    
+    mediapipe::Packet poses_packet;
+        if (!poses_poller_ptr) {
+            return absl::CancelledError(
+                "Failed during getting next poses_packet. 1");
+        }
 
+        if (!poses_poller_ptr->Next(&poses_packet)) {
+            return absl::CancelledError(
+                "Failed during getting next poses_packet. 2");
+        }
+
+        auto& face_poses = poses_packet.Get<::std::vector<Eigen::Matrix4f>>();
+        for (int i = 0; i < face_count_val; ++i) {
+            for (int k = 0; k < 4; ++k) {
+                for (int j = 0; j < 4; ++j) {
+                    multi_face_poses[i].at<double>(k, j) = face_poses[i](k, j);
+                }
+            }
+        }
+    
     // Get face landmarks.
     if (!landmarks_poller_ptr ||
         !landmarks_poller_ptr->Next(&face_landmarks_packet)) {
@@ -513,9 +542,10 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat& camera_frame,
 
 void MPFaceMeshDetector::DetectFaces(const cv::Mat& camera_frame,
     cv::Rect* multi_face_bounding_boxes,
+    cv::Mat *multi_face_poses,
     int* numFaces) {
     const auto status =
-        DetectFacesWithStatus(camera_frame, multi_face_bounding_boxes, numFaces);
+        DetectFacesWithStatus(camera_frame, multi_face_bounding_boxes, multi_face_poses, numFaces);
     if (!status.ok()) {
         LOG(INFO) << "MPFaceMeshDetector::DetectFaces failed: " << status.message();
     }
@@ -618,9 +648,11 @@ extern "C" {
         bool with_attention,
         const char* face_detection_model_path,
         const char* face_landmark_model_path,
-        const char* face_landmark_model_with_attention_path) {
+        const char* face_landmark_model_with_attention_path,
+        const char* geometry_pipeline_metadata_landmarks_path) {
         return new MPFaceMeshDetector(numFaces, with_attention, face_detection_model_path,
-            face_landmark_model_path, face_landmark_model_with_attention_path);
+            face_landmark_model_path, face_landmark_model_with_attention_path,
+            geometry_pipeline_metadata_landmarks_path);
     }
 
     void MPFaceMeshDetectorDestruct(MPFaceMeshDetector* detector) {
@@ -629,8 +661,8 @@ extern "C" {
 
     void MPFaceMeshDetectorDetectFaces(
         MPFaceMeshDetector* detector, const cv::Mat& camera_frame,
-        cv::Rect* multi_face_bounding_boxes, int* numFaces) {
-        detector->DetectFaces(camera_frame, multi_face_bounding_boxes, numFaces);
+        cv::Rect* multi_face_bounding_boxes, cv::Mat *multi_face_poses, int* numFaces) {
+        detector->DetectFaces(camera_frame, multi_face_bounding_boxes, multi_face_poses, numFaces);
     }
     void MPFaceMeshDetectorDetect2DLandmarks(MPFaceMeshDetector* detector,
         cv::Point2f** multi_face_landmarks,
