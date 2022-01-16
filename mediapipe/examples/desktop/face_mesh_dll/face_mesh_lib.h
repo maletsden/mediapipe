@@ -39,7 +39,7 @@ public:
                      const char *face_landmark_model_with_attention_path/*,
                      const char *geometry_pipeline_metadata_landmarks_path*/,
                      int window_size_param,
-                     int velocity_scale_param);
+                     float velocity_scale_param);
 
   void DetectFaces(const cv::Mat &camera_frame,
                    cv::Rect *multi_face_bounding_boxes,
@@ -64,7 +64,7 @@ private:
                                     const char *face_landmark_model_with_attention_path/*,
                                     const char *geometry_pipeline_metadata_landmarks_path*/,
                                     int window_size_param,
-                                    int velocity_scale_param);
+                                    float velocity_scale_param);
   absl::Status DetectFacesWithStatus(const cv::Mat &camera_frame,
                                      cv::Rect *multi_face_bounding_boxes,
                                      int fps,
@@ -117,7 +117,7 @@ MPFaceMeshDetectorConstruct(int numFaces,
     const char *geometry_pipeline_metadata_landmarks_path =
         "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb"*/,
     int window_size_param = 10,
-    int velocity_scale_param = 10);
+    float velocity_scale_param = 10.0);
 
 DLLEXPORT void MPFaceMeshDetectorDestruct(MPFaceMeshDetector *detector);
 

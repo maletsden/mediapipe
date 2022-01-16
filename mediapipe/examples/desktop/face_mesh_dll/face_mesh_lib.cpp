@@ -11,7 +11,7 @@ MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
                                        const char *face_landmark_with_attention_model_path/*,
                                        const char *geometry_pipeline_metadata_landmarks_path*/,
                                        int window_size_param,
-                                       int velocity_scale_param) {
+                                       float velocity_scale_param) {
   const auto status = InitFaceMeshDetector(
       numFaces,
       /*cameraMatrix,*/
@@ -40,7 +40,7 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
                                          const char *face_landmark_with_attention_model_path/*,
                                          const char *geometry_pipeline_metadata_landmarks_path*/,
                                          int window_size_param,
-                                         int velocity_scale_param) {
+                                         float velocity_scale_param) {
   numFaces = std::max(numFaces, 1);
   /*m_cameraMatrix = cameraMatrix.clone();*/
   if (with_attention) {
@@ -361,7 +361,7 @@ MPFaceMeshDetectorConstruct(int numFaces,
     const char* face_landmark_model_with_attention_path/*,
     const char* geometry_pipeline_metadata_landmarks_path*/,
     int window_size_param,
-    int velocity_scale_param){
+    float velocity_scale_param){
   return new MPFaceMeshDetector(numFaces, /*cameraMatrix,*/ with_attention, face_detection_model_path,
                                 face_landmark_model_path, face_landmark_model_with_attention_path/*,
                                 geometry_pipeline_metadata_landmarks_path*/, window_size_param, velocity_scale_param);
