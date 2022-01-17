@@ -28,7 +28,7 @@ package(default_visibility = ["//mediapipe/examples:__subpackages__"])
 windows_dll_library(
     name = "face_mesh_lib",
     srcs = ["face_mesh_lib.cpp"],
-    hdrs = ["face_mesh_lib.h"],
+    hdrs = ["face_mesh_lib.h", "canonical_mesh.h"],
     # Define COMPILING_DLL to export symbols during compiling the DLL.
     copts = ["-DCOMPILING_DLL"],
     deps = [
@@ -51,6 +51,8 @@ windows_dll_library(
         "//mediapipe/calculators/tflite:tflite_model_calculator",
         "//mediapipe/calculators/util:local_file_contents_calculator",
         "//mediapipe/modules/face_landmark:face_landmark_front_side_model_cpu_with_face_counter",
+        "//mediapipe/modules/face_geometry:geometry_pipeline_calculator_with_pose_output",
+        "//mediapipe/calculators/util:multi_face_landmarks_smoothing_calculator",
     ]
 )
 
