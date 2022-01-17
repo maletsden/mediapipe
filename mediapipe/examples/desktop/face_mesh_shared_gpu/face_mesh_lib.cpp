@@ -123,8 +123,7 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   size_t frame_timestamp_us = static_cast<double>(cv::getTickCount()) /
                               static_cast<double>(cv::getTickFrequency()) * 1e6;
   MP_RETURN_IF_ERROR(
-      gpu_helper.RunInGlContext([&input_frame, &frame_timestamp_us, &graph,
-                                 &gpu_helper]() -> absl::Status {
+      gpu_helper.RunInGlContext([&]() -> absl::Status {
         // Convert ImageFrame to GpuBuffer.
         auto texture = gpu_helper.CreateSourceTexture(*input_frame.get());
         auto gpu_frame = texture.GetFrame<mediapipe::GpuBuffer>();
@@ -311,7 +310,7 @@ void MPFaceMeshDetector::DetectLandmarks(cv::Point3f **multi_face_landmarks,
 }
 
 extern "C" {
-DLLEXPORT MPFaceMeshDetector *
+MPFaceMeshDetector*
 MPFaceMeshDetectorConstruct(int numFaces,
     /*cv::Mat cameraMatrix,*/
     bool with_attention,
