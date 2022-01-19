@@ -1,5 +1,7 @@
 #include "face_mesh_lib.h"
 #include "Eigen/Core"
+#include "mediapipe/gpu/gpu_buffer.h"
+#include "mediapipe/gpu/gpu_shared_data_internal.h"
 
 int MPFaceMeshDetector::kLandmarksNum = 468;
 
@@ -120,8 +122,9 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   camera_frame.copyTo(input_frame_mat);
 
   // Send image packet into the graph.
-  size_t frame_timestamp_us = static_cast<double>(cv::getTickCount()) /
-                              static_cast<double>(cv::getTickFrequency()) * 1e6;
+  // size_t frame_timestamp_us = static_cast<double>(cv::getTickCount()) /
+  //                             static_cast<double>(cv::getTickFrequency()) * 1e6;
+  static size_t frame_timestamp = 0;
   MP_RETURN_IF_ERROR(
       gpu_helper.RunInGlContext([&]() -> absl::Status {
         // Convert ImageFrame to GpuBuffer.
@@ -132,11 +135,11 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
         // Send GPU image packet into the graph.
         MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
             kInputStream, mediapipe::Adopt(gpu_frame.release())
-            .At(mediapipe::Timestamp(frame_timestamp_us))));
+            .At(mediapipe::Timestamp(frame_timestamp))));
         // Send fps packet into the graph.
         MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
             kInputStream_fps, mediapipe::MakePacket<int>(fps)
-            .At(mediapipe::Timestamp(frame_timestamp_us))));
+            .At(mediapipe::Timestamp(frame_timestamp++))));
         return absl::OkStatus();
       }));
 

@@ -154,16 +154,6 @@ node {
   output_stream: "ROI:face_rect_from_detection"
 }
 
-# Collects a NormalizedRect for each face into a vector. Upon receiving the
-# BATCH_END timestamp, outputs the vector of NormalizedRect at the BATCH_END
-# timestamp.
-node {
-  calculator: "EndLoopNormalizedRectCalculator"
-  input_stream: "ITEM:face_rect_from_detection"
-  input_stream: "BATCH_END:detections_loop_end_timestamp"
-  output_stream: "ITERABLE:face_rects_from_detections"
-}
-
 # Counting a multi_faceLandmarks vector size. The image stream is only used to 
 # make the calculator work even when there is no input vector.
 node {

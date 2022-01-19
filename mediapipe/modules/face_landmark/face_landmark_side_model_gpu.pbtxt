@@ -81,12 +81,12 @@ node {
 node {
   calculator: "InferenceCalculator"
   input_stream: "TENSORS:input_tensors"
-  input_side_packet: "MODEL:model"
+  input_side_packet: "MODEL:face_landmark_model"
   input_side_packet: "CUSTOM_OP_RESOLVER:op_resolver"
   output_stream: "TENSORS:output_tensors"
   options: {
     [mediapipe.InferenceCalculatorOptions.ext] {
-      delegate { tflite {} }
+      delegate { gpu {} }
     }
   }
 }

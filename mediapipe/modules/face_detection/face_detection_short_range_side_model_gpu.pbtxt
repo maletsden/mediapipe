@@ -73,7 +73,7 @@ node {
   input_side_packet: "MODEL:face_detection_model"
   options: {
     [mediapipe.InferenceCalculatorOptions.ext] {
-      delegate { tflite {} }
+      delegate { gpu {} }
     }
   }
 }
