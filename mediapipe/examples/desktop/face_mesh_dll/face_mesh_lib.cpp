@@ -62,11 +62,10 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
       {{"$geometryPipelineMetadataLandmarksPath", geometry_pipeline_metadata_landmarks_path}});*/
   preparedGraphConfig = absl::StrReplaceAll(
       preparedGraphConfig,
-      {{"&window_size_param", std::to_string(window_size_param)}});
+      {{"$window_size_param", std::to_string(window_size_param)}});
   preparedGraphConfig = absl::StrReplaceAll(
       preparedGraphConfig,
-      {{"&velocity_scale_param", std::to_string(velocity_scale_param)}});
-
+      {{"$velocity_scale_param", std::to_string(velocity_scale_param)}});
 
   LOG(INFO) << "Get calculator graph config contents: " << preparedGraphConfig;
 
@@ -521,8 +520,8 @@ node {
   node_options: {
     [type.googleapis.com/mediapipe.LandmarksSmoothingCalculatorOptions] {
       velocity_filter: {
-        window_size: &window_size_param
-        velocity_scale: &velocity_scale_param
+        window_size: $window_size_param
+        velocity_scale: $velocity_scale_param
       }
     }
   }

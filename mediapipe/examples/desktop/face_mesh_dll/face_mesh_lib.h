@@ -29,6 +29,19 @@
 #include "mediapipe/framework/port/parse_text_proto.h"
 #include "mediapipe/framework/port/status.h"
 
+struct ParameterList{
+    int numFaces = 1;
+    /*cv::Mat cameraMatrix,*/
+    bool with_attention = true;
+    const char *face_detection_model_path = "mediapipe/modules/face_detection/face_detection_short_range.tflite";
+    const char *face_landmark_model_path = "mediapipe/modules/face_landmark/face_landmark.tflite";
+    const char *face_landmark_model_with_attention_path = "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite";
+    /*const char *geometry_pipeline_metadata_landmarks_path=
+        "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb";*/
+    int window_size_param = 10;
+    float velocity_scale_param = 10;
+};
+
 class MPFaceMeshDetector {
 public:
   MPFaceMeshDetector(int numFaces,
