@@ -655,8 +655,8 @@ node {
   node_options: {
     [type.googleapis.com/mediapipe.LandmarksSmoothingCalculatorOptions] {
       velocity_filter: {
-        window_size: 10
-        velocity_scale: 10.0
+        window_size: $window_size_param
+        velocity_scale: $velocity_scale_param
       }
     }
   }

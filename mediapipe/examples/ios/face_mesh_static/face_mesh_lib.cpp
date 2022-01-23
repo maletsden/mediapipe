@@ -10,7 +10,9 @@ MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
     const char* face_detection_model_path,
     const char* face_landmark_model_path,
     const char* face_landmark_with_attention_model_path
-    /*const char* geometry_pipeline_metadata_landmarks_path*/) {
+    /*const char* geometry_pipeline_metadata_landmarks_path*/,
+    int window_size_param,
+    float velocity_scale_param) {
     const auto status = InitFaceMeshDetector(
         numFaces,
         /*cameraMatrix,*/
@@ -35,7 +37,9 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
     const char* face_detection_model_path,
     const char* face_landmark_model_path,
     const char* face_landmark_with_attention_model_path
-    /*const char* geometry_pipeline_metadata_landmarks_path*/) {
+    /*const char* geometry_pipeline_metadata_landmarks_path*/
+    int window_size_param,
+    float velocity_scale_param) {
     numFaces = std::max(numFaces, 1);
     /*m_cameraMatrix = cameraMatrix.clone();*/
     const char* SplitTensorVectorCalculator =
@@ -380,11 +384,19 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
     }
     std::string TensorsToLandmarksStr = "$TensorsToLandmarksSubgraph";
     std::string SplitTensorVectorStr = "$SplitTensorVectorCalculator";
+    std::string WindowSizeStr = "$window_size_param";
+    std::string VelocityScaleStr = "$velocity_scale_param";
     //std::string GeometryPipelineMetadataLandmarksPathStr = "$geometryPipelineMetadataLandmarksPath";
-    auto preparedGraphConfig = face_mesh_graph::graphConfig.replace(face_mesh_graph::graphConfig.find(TensorsToLandmarksStr), TensorsToLandmarksStr.size(), with_attention ? TensorsToLandmarksWithAttentionSubgraph : TensorsToLandmarksSubgraph);
-    preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(SplitTensorVectorStr), SplitTensorVectorStr.size(), with_attention ? SplitTensorVectorCalculatorWithAttention : SplitTensorVectorCalculator);
-    //preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(GeometryPipelineMetadataLandmarksPathStr), GeometryPipelineMetadataLandmarksPathStr.size(), geometry_pipeline_metadata_landmarks_path);
-    
+    auto preparedGraphConfig = face_mesh_graph::graphConfig.replace(face_mesh_graph::graphConfig.find(TensorsToLandmarksStr),
+     TensorsToLandmarksStr.size(), with_attention ? TensorsToLandmarksWithAttentionSubgraph : TensorsToLandmarksSubgraph);
+    preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(SplitTensorVectorStr),
+     SplitTensorVectorStr.size(), with_attention ? SplitTensorVectorCalculatorWithAttention : SplitTensorVectorCalculator);
+    //preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(GeometryPipelineMetadataLandmarksPathStr),
+    // GeometryPipelineMetadataLandmarksPathStr.size(), geometry_pipeline_metadata_landmarks_path);
+    preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(WindowSizeStr),
+     WindowSizeStr.size(), window_size_param);
+    preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(VelocityScaleStr),
+     VelocityScaleStr.size(), velocity_scale_param);
     LOG(INFO) << "Get calculator graph config contents: " << preparedGraphConfig;
     
     mediapipe::CalculatorGraphConfig config =
