@@ -3,69 +3,42 @@
 
 int MPFaceMeshDetector::kLandmarksNum = 468;
 
-MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
-    /*cv::Mat cameraMatrix,*/
-    bool with_attention,
-    const char* face_detection_model_path,
-    const char* face_landmark_model_path,
-    const char* face_landmark_with_attention_model_path/*,
-    const char *geometry_pipeline_metadata_landmarks_path*/,
-    int window_size_param,
-    float velocity_scale_param) {
-    const auto status = InitFaceMeshDetector(
-        numFaces,
-        /*cameraMatrix*/
-        with_attention,
-        face_detection_model_path,
-        face_landmark_model_path,
-        face_landmark_with_attention_model_path/*,
-        geometry_pipeline_metadata_landmarks_path*/,
-        window_size_param,
-        velocity_scale_param);
+MPFaceMeshDetector::MPFaceMeshDetector(const MPFaceMeshParameterList& parameters) {
+    const auto status = InitFaceMeshDetector(parameters);
     if (!status.ok()) {
         LOG(INFO) << "Failed constructing FaceMeshDetector.";
         LOG(INFO) << status.message();
     }
-    if (with_attention) {
+    if (parameters.with_attention) {
         kLandmarksNum = kLandmarksNumWithAttention;
     }
 }
 
 absl::Status
-MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
-    /*cv::Mat cameraMatrix,*/
-    bool with_attention,
-    const char* face_detection_model_path,
-    const char* face_landmark_model_path,
-    const char* face_landmark_with_attention_model_path/*,
-    const char *geometry_pipeline_metadata_landmarks_path*/,
-    int window_size_param,
-    float velocity_scale_param) {
-    numFaces = std::max(numFaces, 1);
+MPFaceMeshDetector::InitFaceMeshDetector(const MPFaceMeshParameterList& parameters) {
+    auto maxNumFaces = std::max(parameters.numFaces, 1);
     /*m_cameraMatrix = cameraMatrix.clone();*/
-    if (with_attention) {
-        face_landmark_model_path = face_landmark_with_attention_model_path;
-    }
 
     // Prepare graph config.
     auto preparedGraphConfig = absl::StrReplaceAll(
-        graphConfig, { {"$numFaces", std::to_string(numFaces)} });
-    preparedGraphConfig = absl::StrReplaceAll(preparedGraphConfig, { {"$with_attention", with_attention ? "true" : "false"} });
+        graphConfig, { {"$numFaces", std::to_string(maxNumFaces)} });
+    preparedGraphConfig = absl::StrReplaceAll(preparedGraphConfig, { {"$with_attention", parameters.with_attention ? "true" : "false"} });
     preparedGraphConfig = absl::StrReplaceAll(
         preparedGraphConfig,
-        { {"$faceDetectionModelPath", face_detection_model_path} });
+        { {"$faceDetectionModelPath", parameters.face_detection_model_path} });
     preparedGraphConfig = absl::StrReplaceAll(
         preparedGraphConfig,
-        { {"$faceLandmarkModelPath", face_landmark_model_path} });
+        { {"$faceLandmarkModelPath", parameters.with_attention ? parameters.face_landmark_model_with_attention_path
+                                                               : parameters.face_landmark_model_path} });
     // preparedGraphConfig = absl::StrReplaceAll(
     //     preparedGraphConfig,
     //     { {"$geometryPipelineMetadataLandmarksPath", geometry_pipeline_metadata_landmarks_path} });
     preparedGraphConfig = absl::StrReplaceAll(
         preparedGraphConfig,
-        {{"$window_size_param", std::to_string(window_size_param)}});
+        {{"$window_size_param", std::to_string(parameters.window_size_param)}});
     preparedGraphConfig = absl::StrReplaceAll(
         preparedGraphConfig,
-        {{"$velocity_scale_param", std::to_string(velocity_scale_param)}});
+        {{"$velocity_scale_param", std::to_string(parameters.velocity_scale_param)}});
     LOG(INFO) << "Get calculator graph config contents: " << preparedGraphConfig;
 
     mediapipe::CalculatorGraphConfig config =
@@ -349,18 +322,8 @@ void MPFaceMeshDetector::DetectLandmarks(cv::Point3f** multi_face_landmarks,
 }
 
 extern "C" {
-    MPFaceMeshDetector* MPFaceMeshDetectorConstruct(int numFaces,
-            /*cv::Mat cameraMatrix,*/
-            bool with_attention,
-            const char* face_detection_model_path,
-            const char* face_landmark_model_path,
-            const char* face_landmark_model_with_attention_path
-            /*const char* geometry_pipeline_metadata_landmarks_path*/,
-            int window_size_param,
-            float velocity_scale_param) {
-        return new MPFaceMeshDetector(numFaces, /*cameraMatrix,*/ with_attention, face_detection_model_path,
-            face_landmark_model_path, face_landmark_model_with_attention_path
-            /*geometry_pipeline_metadata_landmarks_path*/, window_size_param, velocity_scale_param);
+    MPFaceMeshDetector* MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList& parameters) {
+        return new MPFaceMeshDetector(parameters);
     }
 
     void MPFaceMeshDetectorDestruct(MPFaceMeshDetector* detector) {
