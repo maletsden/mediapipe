@@ -36,7 +36,7 @@ cc_binary(
     name = "libmediapipe.so",
     linkshared = 1,
     linkstatic = 1,
-    srcs = ["face_mesh_lib.cpp", "face_mesh_lib.h", "canonical_mesh.h"],
+    srcs = ["face_mesh_lib.cpp", "face_mesh_lib.h"],
     deps = [
         "//mediapipe/framework:calculator_framework",
         "//mediapipe/framework/formats:image_frame",
@@ -57,7 +57,6 @@ cc_binary(
         "//mediapipe/calculators/tflite:tflite_model_calculator",
         "//mediapipe/calculators/util:local_file_contents_calculator",
         "//mediapipe/modules/face_landmark:face_landmark_front_side_model_cpu_with_face_counter",
-        "//mediapipe/modules/face_geometry:geometry_pipeline_calculator_with_pose_output",
         "//mediapipe/calculators/util:multi_face_landmarks_smoothing_calculator",
     ]
 )
