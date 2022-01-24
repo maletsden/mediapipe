@@ -21,18 +21,25 @@ int main(int argc, char **argv) {
 #endif
 
   LOG(INFO) << "VideoCapture initialized.";
-
+  MPFaceMeshParameterList parameters;
+  parameters.numFaces = 1;
+  parameters.with_attention = true;
+  parameters.face_detection_model_path = "mediapipe/modules/face_detection/face_detection_short_range.tflite";
+  parameters.face_landmark_model_path = "mediapipe/modules/face_landmark/face_landmark.tflite";
+  parameters.face_landmark_model_with_attention_path = "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite";
+  parameters.window_size_param = 10;
+  parameters.velocity_scale_param = 10;
   // Maximum number of faces that can be detected
-  constexpr int maxNumFaces = 1;
+  /*constexpr int maxNumFaces = 1;
   constexpr char face_detection_model_path[] =
       "mediapipe/modules/face_detection/face_detection_short_range.tflite";
   constexpr char face_landmark_model_path[] =
       "mediapipe/modules/face_landmark/face_landmark.tflite";
   constexpr char face_landmark_with_attention_model_path[] =
       "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite";
-  /*constexpr char geometry_pipeline_metadata_landmarks_path[] =
-      "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb";*/
-  constexpr bool with_attention = true;
+  constexpr char geometry_pipeline_metadata_landmarks_path[] =
+      "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb";
+  constexpr bool with_attention = true;*/
 
   //double f_x = 640;
   //double f_y = 640;
@@ -40,17 +47,15 @@ int main(int argc, char **argv) {
   //double c_y = 240;
   //cv::Mat camera_matrix = (cv::Mat_<double>(3, 3) << f_x, 0.0, c_x, 0.0, f_y, c_y, 0.0, 0.0, 1.0);
 
-  MPFaceMeshDetector* faceMeshDetector = MPFaceMeshDetectorConstruct(
-	maxNumFaces, /*camera_matrix,*/ with_attention, face_detection_model_path, face_landmark_model_path,
-	face_landmark_with_attention_model_path/*, geometry_pipeline_metadata_landmarks_path*/, 10, 10.0);
+  MPFaceMeshDetector* faceMeshDetector = MPFaceMeshDetectorConstruct(parameters);
 
   // Allocate memory for face landmarks.
-  auto multiFaceLandmarks = new cv::Point2f *[maxNumFaces];
-  for (int i = 0; i < maxNumFaces; ++i) {
+  auto multiFaceLandmarks = new cv::Point2f *[parameters.numFaces];
+  for (int i = 0; i < parameters.numFaces; ++i) {
     multiFaceLandmarks[i] = new cv::Point2f[MPFaceMeshDetectorLandmarksNum];
   }
 
-  std::vector<cv::Rect> multiFaceBoundingBoxes(maxNumFaces);
+  std::vector<cv::Rect> multiFaceBoundingBoxes(parameters.numFaces);
   //std::vector<cv::Mat> multiFacePoses(maxNumFaces, cv::Mat::zeros(4, 4, CV_64F));
 
   LOG(INFO) << "FaceMeshDetector constructed.";
@@ -152,7 +157,7 @@ int main(int argc, char **argv) {
   LOG(INFO) << "Shutting down.";
 
   // Deallocate memory for face landmarks.
-  for (int i = 0; i < maxNumFaces; ++i) {
+  for (int i = 0; i < parameters.numFaces; ++i) {
     delete[] multiFaceLandmarks[i];
   }
   delete[] multiFaceLandmarks;
