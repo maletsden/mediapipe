@@ -3,7 +3,7 @@
 
 int MPFaceMeshDetector::kLandmarksNum = 468;
 
-MPFaceMeshDetector::MPFaceMeshDetector(const MPFaceMeshParameterList parameters) {
+MPFaceMeshDetector::MPFaceMeshDetector(const MPFaceMeshParameterList& parameters) {
   const auto status = InitFaceMeshDetector(parameters);
   if (!status.ok()) {
     LOG(INFO) << "Failed constructing FaceMeshDetector.";
@@ -15,7 +15,7 @@ MPFaceMeshDetector::MPFaceMeshDetector(const MPFaceMeshParameterList parameters)
 }
 
 absl::Status
-MPFaceMeshDetector::InitFaceMeshDetector(const MPFaceMeshParameterList parameters) {
+MPFaceMeshDetector::InitFaceMeshDetector(const MPFaceMeshParameterList& parameters) {
   auto maxNumFaces = std::max(parameters.numFaces, 1);
   /*m_cameraMatrix = cameraMatrix.clone();*/
 
@@ -325,7 +325,7 @@ void MPFaceMeshDetector::DetectLandmarks(cv::Point3f **multi_face_landmarks,
 
 extern "C" {
 DLLEXPORT MPFaceMeshDetector *
-MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList parameters){
+MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList& parameters){
   return new MPFaceMeshDetector(parameters);
 }
 

@@ -27,8 +27,8 @@ int main(int argc, char **argv) {
   parameters.face_detection_model_path = "mediapipe/modules/face_detection/face_detection_short_range.tflite";
   parameters.face_landmark_model_path = "mediapipe/modules/face_landmark/face_landmark.tflite";
   parameters.face_landmark_model_with_attention_path = "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite";
-  parameters.window_size_param = 10;
-  parameters.velocity_scale_param = 10;
+  parameters.window_size_param = 12;
+  parameters.velocity_scale_param = 8;
   // Maximum number of faces that can be detected
   /*constexpr int maxNumFaces = 1;
   constexpr char face_detection_model_path[] =
