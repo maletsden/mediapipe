@@ -322,7 +322,7 @@ void MPFaceMeshDetector::DetectLandmarks(cv::Point3f** multi_face_landmarks,
 }
 
 extern "C" {
-    MPFaceMeshDetector* MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList& parameters) {
+    MPFaceMeshDetector* MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList parameters) {
         return new MPFaceMeshDetector(parameters);
     }
 

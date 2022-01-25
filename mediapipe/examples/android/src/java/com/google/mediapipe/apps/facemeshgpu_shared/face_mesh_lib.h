@@ -95,7 +95,7 @@ private:
 extern "C" {
 #endif
 
-    MPFaceMeshDetector* MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList& parameters);
+    MPFaceMeshDetector* MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList parameters);
 
     void MPFaceMeshDetectorDestruct(MPFaceMeshDetector* detector);
 
