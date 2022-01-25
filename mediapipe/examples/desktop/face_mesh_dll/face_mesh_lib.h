@@ -105,7 +105,7 @@ extern "C" {
 #endif
 
 DLLEXPORT MPFaceMeshDetector *
-MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList& parameters);
+MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList parameters);
 
 DLLEXPORT void MPFaceMeshDetectorDestruct(MPFaceMeshDetector *detector);
 
