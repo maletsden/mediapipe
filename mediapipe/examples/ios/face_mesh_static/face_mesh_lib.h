@@ -101,15 +101,15 @@ extern "C" {
 #endif
 
     MPFaceMeshDetector* MPFaceMeshDetectorConstruct(int numFaces,
-        /*cv::Mat cameraMatrix,*/
-        bool with_attention = true,
-        const char *face_detection_model_path = "mediapipe/modules/face_detection/face_detection_short_range.tflite",
-        const char *face_landmark_model_path = "mediapipe/modules/face_landmark/face_landmark.tflite",
-        const char *face_landmark_model_with_attention_path = "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite",
-        /*const char *geometry_pipeline_metadata_landmarks_path=
-            "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb",*/
-        int window_size_param = 8,
-        float velocity_scale_param = 10);
+            /*cv::Mat cameraMatrix,*/
+            bool with_attention = true,
+            const char *face_detection_model_path = "mediapipe/modules/face_detection/face_detection_short_range.tflite",
+            const char *face_landmark_model_path = "mediapipe/modules/face_landmark/face_landmark.tflite",
+            const char *face_landmark_model_with_attention_path = "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite",
+            /*const char *geometry_pipeline_metadata_landmarks_path=
+                "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb",*/
+            int window_size_param = 8,
+            float velocity_scale_param = 10);
 
     void MPFaceMeshDetectorDestruct(MPFaceMeshDetector* detector);
 
