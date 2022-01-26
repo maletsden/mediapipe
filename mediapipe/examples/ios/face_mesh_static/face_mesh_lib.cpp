@@ -4,19 +4,36 @@
 
 int MPFaceMeshDetector::kLandmarksNum = 468;
 
-MPFaceMeshDetector::MPFaceMeshDetector(const MPFaceMeshParameterList parameters) {
-    const auto status = InitFaceMeshDetector(parameters);
+MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
+                                       /*cv::Mat cameraMatrix,*/
+                                       bool with_attention,
+                                       const char *face_detection_model_path,
+                                       const char *face_landmark_model_path,
+                                       const char *face_landmark_model_with_attention_path,
+                                       /*const char *geometry_pipeline_metadata_landmarks_path,*/
+                                       int window_size_param,
+                                       float velocity_scale_param) {
+    const auto status = InitFaceMeshDetector(numFaces, with_attention, face_detection_model_path, face_landmark_model_path,
+                                             face_landmark_model_with_attention_path, window_size_param, velocity_scale_param);
     if (!status.ok()) {
         LOG(INFO) << "Failed constructing FaceMeshDetector.";
         LOG(INFO) << status.message();
     }
-    if (parameters.with_attention) {
+    if (with_attention) {
         kLandmarksNum = kLandmarksNumWithAttention;
     }
 }
 
 absl::Status
-MPFaceMeshDetector::InitFaceMeshDetector(const MPFaceMeshParameterList parameters) {
+MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
+                                         /*cv::Mat cameraMatrix,*/
+                                         bool with_attention,
+                                         const char *face_detection_model_path,
+                                         const char *face_landmark_model_path,
+                                         const char *face_landmark_model_with_attention_path,
+                                         /*const char *geometry_pipeline_metadata_landmarks_path,*/
+                                         int window_size_param,
+                                         float velocity_scale_param) {
     /*m_cameraMatrix = cameraMatrix.clone();*/
     const char* SplitTensorVectorCalculator =
     R""""(
@@ -361,15 +378,15 @@ MPFaceMeshDetector::InitFaceMeshDetector(const MPFaceMeshParameterList parameter
     std::string VelocityScaleStr = "$velocity_scale_param";
     //std::string GeometryPipelineMetadataLandmarksPathStr = "$geometryPipelineMetadataLandmarksPath";
     auto preparedGraphConfig = face_mesh_graph::graphConfig.replace(face_mesh_graph::graphConfig.find(TensorsToLandmarksStr),
-     TensorsToLandmarksStr.size(), parameters.with_attention ? TensorsToLandmarksWithAttentionSubgraph : TensorsToLandmarksSubgraph);
+     TensorsToLandmarksStr.size(), with_attention ? TensorsToLandmarksWithAttentionSubgraph : TensorsToLandmarksSubgraph);
     preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(SplitTensorVectorStr),
-     SplitTensorVectorStr.size(), parameters.with_attention ? SplitTensorVectorCalculatorWithAttention : SplitTensorVectorCalculator);
+     SplitTensorVectorStr.size(), with_attention ? SplitTensorVectorCalculatorWithAttention : SplitTensorVectorCalculator);
     //preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(GeometryPipelineMetadataLandmarksPathStr),
     // GeometryPipelineMetadataLandmarksPathStr.size(), geometry_pipeline_metadata_landmarks_path);
     preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(WindowSizeStr),
-     WindowSizeStr.size(), std::to_string(parameters.window_size_param));
+     WindowSizeStr.size(), std::to_string(window_size_param));
     preparedGraphConfig = preparedGraphConfig.replace(preparedGraphConfig.find(VelocityScaleStr),
-     VelocityScaleStr.size(), std::to_string(parameters.velocity_scale_param));
+     VelocityScaleStr.size(), std::to_string(velocity_scale_param));
     LOG(INFO) << "Get calculator graph config contents: " << preparedGraphConfig;
     
     mediapipe::CalculatorGraphConfig config =
@@ -378,12 +395,12 @@ MPFaceMeshDetector::InitFaceMeshDetector(const MPFaceMeshParameterList parameter
     
     // Prepare graph config.
     std::map<std::string, mediapipe::Packet> extra_side_packets;
-    extra_side_packets.insert({ "num_faces", mediapipe::MakePacket<int>(std::max(parameters.numFaces, 1)) });
-    extra_side_packets.insert({ "with_attention", mediapipe::MakePacket<bool>(parameters.with_attention) });
-    extra_side_packets.insert({ "face_detection_model_path", mediapipe::MakePacket<std::string>(parameters.face_detection_model_path) });
-    extra_side_packets.insert({ "face_landmark_model_path", mediapipe::MakePacket<std::string>(parameters.with_attention ?
-                                                                                               parameters.face_landmark_model_with_attention_path :
-                                                                                               parameters.face_landmark_model_path) });
+    extra_side_packets.insert({ "num_faces", mediapipe::MakePacket<int>(std::max(numFaces, 1)) });
+    extra_side_packets.insert({ "with_attention", mediapipe::MakePacket<bool>(with_attention) });
+    extra_side_packets.insert({ "face_detection_model_path", mediapipe::MakePacket<std::string>(face_detection_model_path) });
+    extra_side_packets.insert({ "face_landmark_model_path", mediapipe::MakePacket<std::string>(with_attention ?
+                                                                                               face_landmark_model_with_attention_path :
+                                                                                               face_landmark_model_path) });
 
     MP_RETURN_IF_ERROR(graph.Initialize(config, extra_side_packets));
 
@@ -662,8 +679,17 @@ void MPFaceMeshDetector::DetectLandmarks(cv::Point3f** multi_face_landmarks,
 }
 
 extern "C" {
-    MPFaceMeshDetector* MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList parameters) {
-        return new MPFaceMeshDetector(parameters);
+    MPFaceMeshDetector* MPFaceMeshDetectorConstruct(int numFaces,
+                                                    /*cv::Mat cameraMatrix,*/
+                                                    bool with_attention,
+                                                    const char *face_detection_model_path,
+                                                    const char *face_landmark_model_path,
+                                                    const char *face_landmark_model_with_attention_path,
+                                                    /*const char *geometry_pipeline_metadata_landmarks_path,*/
+                                                    int window_size_param,
+                                                    float velocity_scale_param) {
+        return new MPFaceMeshDetector(numFaces, with_attention, face_detection_model_path, face_landmark_model_path,
+                                      face_landmark_model_with_attention_path, window_size_param, velocity_scale_param);
     }
 
     void MPFaceMeshDetectorDestruct(MPFaceMeshDetector* detector) {
