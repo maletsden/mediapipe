@@ -23,29 +23,21 @@
 #include "mediapipe/framework/port/status.h"
 
 struct MPFaceMeshParameterList{
-    int numFaces = 1;
+    int numFaces;
     /*cv::Mat cameraMatrix,*/
-    bool with_attention = true;
-    const char *face_detection_model_path = "mediapipe/modules/face_detection/face_detection_short_range.tflite";
-    const char *face_landmark_model_path = "mediapipe/modules/face_landmark/face_landmark.tflite";
-    const char *face_landmark_model_with_attention_path = "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite";
+    bool with_attention;
+    std::string face_detection_model_path;
+    std::string face_landmark_model_path;
+    std::string face_landmark_model_with_attention_path;
     /*const char *geometry_pipeline_metadata_landmarks_path=
         "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb";*/
-    int window_size_param = 10;
-    float velocity_scale_param = 10;
+    int window_size_param;
+    float velocity_scale_param;
 };
 
 class MPFaceMeshDetector {
 public:
-    MPFaceMeshDetector(int numFaces,
-                       /*cv::Mat cameraMatrix,*/
-                       bool with_attention,
-                       const char *face_detection_model_path,
-                       const char *face_landmark_model_path,
-                       const char *face_landmark_model_with_attention_path,
-                       /*const char *geometry_pipeline_metadata_landmarks_path*/
-                       int window_size_param,
-                       float velocity_scale_param);
+    MPFaceMeshDetector(const MPFaceMeshParameterList parameters);
 
     void DetectFaces(const cv::Mat &camera_frame,
                      cv::Rect *multi_face_bounding_boxes,
@@ -62,15 +54,7 @@ public:
     static int kLandmarksNum;
 
 private:
-    absl::Status InitFaceMeshDetector(int numFaces,
-                                      /*cv::Mat cameraMetrix,*/
-                                      bool with_attention,
-                                      const char *face_detection_model_path,
-                                      const char *face_landmark_model_path,
-                                      const char *face_landmark_model_with_attention_path
-                                      /*const char *geometry_pipeline_metadata_landmarks_path*/,
-                                      int window_size_param,
-                                      float velocity_scale_param);
+    absl::Status InitFaceMeshDetector(const MPFaceMeshParameterList parameters);
     absl::Status DetectFacesWithStatus(const cv::Mat &camera_frame,
                                        cv::Rect *multi_face_bounding_boxes,
                                        int fsp,
@@ -113,16 +97,7 @@ private:
 extern "C" {
 #endif
 
-    MPFaceMeshDetector* MPFaceMeshDetectorConstruct(int numFaces,
-        /*cv::Mat cameraMatrix,*/
-        bool with_attention = true,
-        const char* face_detection_model_path = "mediapipe/modules/face_detection/face_detection_short_range.tflite",
-        const char* face_landmark_model_path = "mediapipe/modules/face_landmark/face_landmark.tflite",
-        const char* face_landmark_model_with_attention_path = "mediapipe/modules/face_landmark/face_landmark_with_attention.tflite",
-        /*const char* geometry_pipeline_metadata_landmarks_path =
-            "mediapipe/modules/face_geometry/data/geometry_pipeline_metadata_landmarks.binarypb"*/
-        int window_size_param = 10,
-        float velocity_scale_param = 10.0);
+    MPFaceMeshDetector* MPFaceMeshDetectorConstruct(const MPFaceMeshParameterList parameters);
 
     void MPFaceMeshDetectorDestruct(MPFaceMeshDetector* detector);
 

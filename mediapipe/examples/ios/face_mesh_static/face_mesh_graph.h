@@ -45,8 +45,8 @@
 #include "mediapipe/framework/stream_handler/immediate_input_stream_handler.h"
 #include "mediapipe/framework/tool/switch_container.h"
 
-#include "mediapipe/modules/face_geometry/env_generator_calculator.h"
-#include "mediapipe/modules/face_geometry/geometry_pipeline_calculator_with_pose_output.h"
+//#include "mediapipe/modules/face_geometry/env_generator_calculator.h"
+//#include "mediapipe/modules/face_geometry/geometry_pipeline_calculator_with_pose_output.h"
 #include "mediapipe/calculators/util/multi_face_landmarks_smoothing_calculator.h"
 
 namespace face_mesh_graph {
@@ -97,8 +97,8 @@ namespace face_mesh_graph {
     typeid(::mediapipe::ImmediateInputStreamHandler);
     typeid(::mediapipe::tool::SwitchContainer);
     
-    typeid(::mediapipe::FaceGeometryEnvGeneratorCalculator);
-    typeid(::mediapipe::FaceGeometryPipelineCalculatorWithPoseOutput);
+  //  typeid(::mediapipe::FaceGeometryEnvGeneratorCalculator);
+  //  typeid(::mediapipe::FaceGeometryPipelineCalculatorWithPoseOutput);
     typeid(::mediapipe::MultiFaceLandmarksSmoothingCalculator);
   }
 
@@ -609,23 +609,6 @@ node {
   output_stream: "ITERABLE:multi_face_landmarks"
 }
 
-#node {
-#  calculator: "FaceGeometryEnvGeneratorCalculator"
-#  output_side_packet: "ENVIRONMENT:environment"
-#  node_options: {
-#    [type.googleapis.com/mediapipe.FaceGeometryEnvGeneratorCalculatorOptions] {
-#      environment: {
-#        origin_point_location: TOP_LEFT_CORNER
-#        perspective_camera: {
-#          vertical_fov_degrees: 75.0  # 75 degrees
-#          near: 1.0  # 1cm
-#          far: 1000.0  # 10m
-#        }
-#      }
-#    }
-#  }
-#}
-
 node {
   calculator: "EndLoopNormalizedRectCalculator"
   input_stream: "ITEM:face_rect_from_landmarks"
@@ -661,21 +644,6 @@ node {
     }
   }
 }
-
-#node {
-#  calculator: "FaceGeometryPipelineCalculatorWithPoseOutput"
-#  input_side_packet: "ENVIRONMENT:environment"
-#  input_side_packet: "WITH_ATTENTION:with_attention"
-#  input_stream: "CAMERA_MATRIX:camera_matrix"
-#  input_stream: "IMAGE_SIZE:image_size"
-#  input_stream: "MULTI_FACE_LANDMARKS:multi_face_landmarks"
-#  output_stream: "MULTI_FACE_POSES:multi_face_poses"
-#  options: {
-#    [mediapipe.FaceGeometryPipelineCalculatorOptions.ext] {
-#      metadata_path: "$geometryPipelineMetadataLandmarksPath"
-#    }
-#  }
-#}
 )pb";
 }
 
