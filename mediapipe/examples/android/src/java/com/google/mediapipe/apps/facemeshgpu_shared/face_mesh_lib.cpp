@@ -98,14 +98,16 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
 absl::Status
 MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat& camera_frame,
     cv::Rect* multi_face_bounding_boxes,
-    int fps,
     int* numFaces) {
     if (!numFaces || !multi_face_bounding_boxes) {
         return absl::InvalidArgumentError(
             "MPFaceMeshDetector::DetectFacesWithStatus requires notnull pointer to "
             "save results data.");
     }
-
+    auto current_timestamp = std::chrono::high_resolution_clock::now();
+    double difference = std::chrono::duration_cast<std::chrono::milliseconds>(current_timestamp - m_timestamp).count() / 1000.0;
+    int fps = (1 / difference);
+    m_timestamp = current_timestamp;
     // Reset face counts.
     *numFaces = 0;
     face_count = 0;
@@ -205,10 +207,9 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat& camera_frame,
 
 void MPFaceMeshDetector::DetectFaces(const cv::Mat& camera_frame,
     cv::Rect* multi_face_bounding_boxes,
-    int fps,
     int* numFaces) {
     const auto status =
-        DetectFacesWithStatus(camera_frame, multi_face_bounding_boxes, fps, numFaces);
+        DetectFacesWithStatus(camera_frame, multi_face_bounding_boxes, numFaces);
     if (!status.ok()) {
         LOG(INFO) << "MPFaceMeshDetector::DetectFaces failed: " << status.message();
     }
@@ -358,8 +359,8 @@ extern "C" {
 
     void MPFaceMeshDetectorDetectFaces(
         MPFaceMeshDetector* detector, const cv::Mat& camera_frame,
-        cv::Rect* multi_face_bounding_boxes, int fps, int* numFaces) {
-        detector->DetectFaces(camera_frame, multi_face_bounding_boxes, fps, numFaces);
+        cv::Rect* multi_face_bounding_boxes, int* numFaces) {
+        detector->DetectFaces(camera_frame, multi_face_bounding_boxes, numFaces);
     }
     //void
     //MPFaceMeshDetectorDetectFacePoses(MPFaceMeshDetector* detector,
