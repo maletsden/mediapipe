@@ -108,7 +108,6 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   auto current_timestamp = std::chrono::high_resolution_clock::now();
   double difference = std::chrono::duration_cast<std::chrono::milliseconds>(current_timestamp - m_timestamp).count() / 1000.0;
   int fps = (1 / difference);
-  LOG(INFO) << std::to_string(fps);
   m_timestamp = current_timestamp;
   // Reset face counts.
   *numFaces = 0;
