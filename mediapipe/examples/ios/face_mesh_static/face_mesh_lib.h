@@ -36,7 +36,6 @@ public:
 
     void DetectFaces(const cv::Mat &camera_frame,
                      cv::Rect *multi_face_bounding_boxes,
-                     int fps,
                      int *numFaces);
 
     //void DetectFacePoses(cv::Mat* multi_face_poses, int* numFaces);
@@ -60,7 +59,6 @@ private:
                                       float velocity_scale_param);
     absl::Status DetectFacesWithStatus(const cv::Mat &camera_frame,
                                        cv::Rect *multi_face_bounding_boxes,
-                                       int fsp,
                                        int *numFaces);
 
     //absl::Status DetectFacePosesWithStatus(cv::Mat* multi_face_poses);
@@ -116,7 +114,7 @@ extern "C" {
 
     void MPFaceMeshDetectorDetectFaces(
         MPFaceMeshDetector* detector, const cv::Mat& camera_frame,
-        cv::Rect* multi_face_bounding_boxes, int fps, int* numFaces);
+        cv::Rect* multi_face_bounding_boxes, int* numFaces);
 
     //DLLEXPORT void
     //MPFaceMeshDetectorDetectFacePoses(MPFaceMeshDetector* detector,
