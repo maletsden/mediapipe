@@ -43,7 +43,6 @@ public:
 
   void DetectFaces(const cv::Mat &camera_frame,
                    cv::Rect *multi_face_bounding_boxes,
-                   int fps,
                    int *numFaces);
 
   //void DetectFacePoses(cv::Mat* multi_face_poses, int* numFaces);
@@ -67,7 +66,6 @@ private:
                                     float velocity_scale_param);
   absl::Status DetectFacesWithStatus(const cv::Mat &camera_frame,
                                      cv::Rect *multi_face_bounding_boxes,
-                                     int fps,
                                      int *numFaces);
 
   //absl::Status DetectFacePosesWithStatus(cv::Mat* multi_face_poses);
@@ -101,6 +99,7 @@ private:
   //mediapipe::Packet poses_packet;
 
   //cv::Mat m_cameraMatrix;
+  std::chrono::high_resolution_clock::time_point m_timestamp = std::chrono::high_resolution_clock::now();
 };
 
 #ifdef __cplusplus
@@ -123,7 +122,7 @@ DLLEXPORT void MPFaceMeshDetectorDestruct(MPFaceMeshDetector *detector);
 
 DLLEXPORT void MPFaceMeshDetectorDetectFaces(
     MPFaceMeshDetector *detector, const cv::Mat &camera_frame,
-    cv::Rect *multi_face_bounding_boxes, int fps, int *numFaces);
+    cv::Rect *multi_face_bounding_boxes, int *numFaces);
 
 //DLLEXPORT void
 //MPFaceMeshDetectorDetectFacePoses(MPFaceMeshDetector* detector,

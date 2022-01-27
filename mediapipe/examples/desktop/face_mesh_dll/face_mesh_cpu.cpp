@@ -60,7 +60,6 @@ int main(int argc, char **argv) {
   //cv::Mat transl_y = (cv::Mat_<double>(4, 4) << 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
   //cv::Mat transl_z = (cv::Mat_<double>(4, 4) << 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
   //cv::Mat transl_x = (cv::Mat_<double>(4, 4) << -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
-  int fps = 30;
   while (grab_frames) {
     // Capture opencv camera.
     cv::Mat camera_frame_raw;
@@ -76,7 +75,7 @@ int main(int argc, char **argv) {
     int faceCount = 0;
 
     MPFaceMeshDetectorDetectFaces(faceMeshDetector, camera_frame,
-    	multiFaceBoundingBoxes.data(), fps, &faceCount);
+    	multiFaceBoundingBoxes.data(), &faceCount);
 
 	if (faceCount > 0) {
       auto& face_bounding_box = multiFaceBoundingBoxes[0];
