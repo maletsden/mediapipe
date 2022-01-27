@@ -94,6 +94,7 @@ private:
     //mediapipe::Packet poses_packet;
 
     //cv::Mat m_cameraMatrix;
+    std::chrono::high_resolution_clock::time_point m_timestamp = std::chrono::high_resolution_clock::now();
 };
 
 #ifdef __cplusplus
