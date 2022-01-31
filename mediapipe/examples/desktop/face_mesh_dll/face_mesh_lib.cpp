@@ -1,18 +1,19 @@
 #include "face_mesh_lib.h"
+#include "Eigen/Core"
 
 int MPFaceMeshDetector::kLandmarksNum = 468;
 
 MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
+                                       /*cv::Mat cameraMatrix,*/
                                        bool with_attention,
                                        const char *face_detection_model_path,
                                        const char *face_landmark_model_path,
-                                       const char *face_landmark_with_attention_model_path) {
-  const auto status = InitFaceMeshDetector(
-      numFaces,
-      with_attention,
-      face_detection_model_path,
-      face_landmark_model_path,
-      face_landmark_with_attention_model_path);
+                                       const char *face_landmark_model_with_attention_path,
+                                       /*const char *geometry_pipeline_metadata_landmarks_path,*/
+                                       int window_size_param,
+                                       float velocity_scale_param) {
+  const auto status = InitFaceMeshDetector(numFaces, with_attention, face_detection_model_path, face_landmark_model_path,
+                                           face_landmark_model_with_attention_path, window_size_param, velocity_scale_param);
   if (!status.ok()) {
     LOG(INFO) << "Failed constructing FaceMeshDetector.";
     LOG(INFO) << status.message();
@@ -24,15 +25,16 @@ MPFaceMeshDetector::MPFaceMeshDetector(int numFaces,
 
 absl::Status
 MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
+                                         /*cv::Mat cameraMatrix,*/
                                          bool with_attention,
                                          const char *face_detection_model_path,
                                          const char *face_landmark_model_path,
-                                         const char *face_landmark_with_attention_model_path) {
+                                         const char *face_landmark_model_with_attention_path,
+                                         /*const char *geometry_pipeline_metadata_landmarks_path,*/
+                                         int window_size_param,
+                                         float velocity_scale_param) {
   numFaces = std::max(numFaces, 1);
-
-  if (with_attention) {
-    face_landmark_model_path = face_landmark_with_attention_model_path;
-  }
+  /*m_cameraMatrix = cameraMatrix.clone();*/
 
   // Prepare graph config.
   auto preparedGraphConfig = absl::StrReplaceAll(
@@ -43,7 +45,17 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
       {{"$faceDetectionModelPath", face_detection_model_path}});
   preparedGraphConfig = absl::StrReplaceAll(
       preparedGraphConfig,
-      {{"$faceLandmarkModelPath", face_landmark_model_path}});
+      {{"$faceLandmarkModelPath", with_attention ? face_landmark_model_with_attention_path :
+        face_landmark_model_path}});
+  /*preparedGraphConfig = absl::StrReplaceAll(
+      preparedGraphConfig,
+      {{"$geometryPipelineMetadataLandmarksPath", geometry_pipeline_metadata_landmarks_path}});*/
+  preparedGraphConfig = absl::StrReplaceAll(
+      preparedGraphConfig,
+      {{"$window_size_param", std::to_string(window_size_param)}});
+  preparedGraphConfig = absl::StrReplaceAll(
+      preparedGraphConfig,
+      {{"$velocity_scale_param", std::to_string(velocity_scale_param)}});
 
   LOG(INFO) << "Get calculator graph config contents: " << preparedGraphConfig;
 
@@ -63,6 +75,9 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
   ASSIGN_OR_RETURN(
       mediapipe::OutputStreamPoller face_rects_from_landmarks_poller,
       graph.AddOutputStreamPoller(kOutputStream_face_rects_from_landmarks));
+  //ASSIGN_OR_RETURN(
+  //    mediapipe::OutputStreamPoller poses_poller,
+  //    graph.AddOutputStreamPoller(kOutputStream_poses));
 
   landmarks_poller_ptr = std::make_unique<mediapipe::OutputStreamPoller>(
       std::move(landmarks_poller));
@@ -71,6 +86,8 @@ MPFaceMeshDetector::InitFaceMeshDetector(int numFaces,
   face_rects_from_landmarks_poller_ptr =
       std::make_unique<mediapipe::OutputStreamPoller>(
           std::move(face_rects_from_landmarks_poller));
+  //poses_poller_ptr = std::make_unique<mediapipe::OutputStreamPoller>(
+  //    std::move(poses_poller));
 
   MP_RETURN_IF_ERROR(graph.StartRun({}));
 
@@ -88,7 +105,10 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
         "MPFaceMeshDetector::DetectFacesWithStatus requires notnull pointer to "
         "save results data.");
   }
-
+  auto current_timestamp = std::chrono::high_resolution_clock::now();
+  double difference = std::chrono::duration_cast<std::chrono::milliseconds>(current_timestamp - m_timestamp).count() / 1000.0;
+  int fps = (1 / difference);
+  m_timestamp = current_timestamp;
   // Reset face counts.
   *numFaces = 0;
   face_count = 0;
@@ -106,6 +126,14 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
   MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
       kInputStream, mediapipe::Adopt(input_frame.release())
                         .At(mediapipe::Timestamp(frame_timestamp_us))));
+  // Send calibration packet into the graph.
+  //MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
+  //    kInputStream_camera_matrix, mediapipe::MakePacket<cv::Mat>(m_cameraMatrix)
+  //    .At(mediapipe::Timestamp(frame_timestamp_us))));
+  // Send fps packet into the graph.
+  MP_RETURN_IF_ERROR(graph.AddPacketToInputStream(
+      kInputStream_fps, mediapipe::MakePacket<int>(fps)
+      .At(mediapipe::Timestamp(frame_timestamp_us))));
 
   // Get face count.
   mediapipe::Packet face_count_packet;
@@ -160,6 +188,13 @@ MPFaceMeshDetector::DetectFacesWithStatus(const cv::Mat &camera_frame,
     bounding_box.height = height;
   }
 
+  // Get face poses.
+  //if (!poses_poller_ptr ||
+  //    !poses_poller_ptr->Next(&poses_packet)) {
+  //    return absl::CancelledError(
+  //        "Failed during getting next poses_packet.");
+  //}
+
   // Get face landmarks.
   if (!landmarks_poller_ptr ||
       !landmarks_poller_ptr->Next(&face_landmarks_packet)) {
@@ -181,6 +216,38 @@ void MPFaceMeshDetector::DetectFaces(const cv::Mat &camera_frame,
     LOG(INFO) << "MPFaceMeshDetector::DetectFaces failed: " << status.message();
   }
 }
+
+//absl::Status MPFaceMeshDetector::DetectFacePosesWithStatus(cv::Mat* multi_face_poses) {
+//  if (poses_packet.IsEmpty()) {
+//      return absl::CancelledError("Face poses packet is empty.");
+//  }
+//  if (!multi_face_poses) {
+//      return absl::InvalidArgumentError(
+//          "MPFaceMeshDetector::DetectFacesWithStatus requires notnull pointer to "
+//          "save results data.");
+//  }
+//  auto& face_poses = poses_packet.Get<::std::vector<Eigen::Matrix4f>>();
+//  for (int i = 0; i < face_count; ++i) {
+//      for (int k = 0; k < 4; ++k) {
+//          for (int j = 0; j < 4; ++j) {
+//              multi_face_poses[i].at<double>(k, j) = face_poses[i](k, j);
+//          }
+//      }
+//  }
+//
+//    return absl::OkStatus();
+//}
+//
+//void MPFaceMeshDetector::DetectFacePoses(cv::Mat* multi_face_poses, int* numFaces) {
+//  *numFaces = 0;
+//  const auto status = DetectFacePosesWithStatus(multi_face_poses);
+//  if (!status.ok()) {
+//      LOG(INFO) << "MPFaceMeshDetector::DetectFacePoses failed: "
+//          << status.message();
+//  }
+//  *numFaces = face_count;
+//}
+
 absl::Status MPFaceMeshDetector::DetectLandmarksWithStatus(
     cv::Point2f **multi_face_landmarks) {
 
@@ -277,12 +344,16 @@ void MPFaceMeshDetector::DetectLandmarks(cv::Point3f **multi_face_landmarks,
 extern "C" {
 DLLEXPORT MPFaceMeshDetector *
 MPFaceMeshDetectorConstruct(int numFaces,
-    bool with_attention,
-    const char* face_detection_model_path,
-    const char* face_landmark_model_path,
-    const char* face_landmark_model_with_attention_path){
-  return new MPFaceMeshDetector(numFaces, with_attention, face_detection_model_path,
-                                face_landmark_model_path, face_landmark_model_with_attention_path);
+                            /*cv::Mat cameraMatrix,*/
+                            bool with_attention,
+                            const char *face_detection_model_path,
+                            const char *face_landmark_model_path,
+                            const char *face_landmark_model_with_attention_path,
+                            /*const char *geometry_pipeline_metadata_landmarks_path,*/
+                            int window_size_param,
+                            float velocity_scale_param){
+  return new MPFaceMeshDetector(numFaces, with_attention, face_detection_model_path, face_landmark_model_path,
+                                face_landmark_model_with_attention_path, window_size_param, velocity_scale_param);
 }
 
 DLLEXPORT void MPFaceMeshDetectorDestruct(MPFaceMeshDetector *detector) {
@@ -294,6 +365,12 @@ DLLEXPORT void MPFaceMeshDetectorDetectFaces(
     cv::Rect *multi_face_bounding_boxes, int *numFaces) {
   detector->DetectFaces(camera_frame, multi_face_bounding_boxes, numFaces);
 }
+//DLLEXPORT void
+//MPFaceMeshDetectorDetectFacePoses(MPFaceMeshDetector* detector,
+//                                  cv::Mat* multi_face_poses,
+//                                  int* numFaces) {
+//  detector->DetectFacePoses(multi_face_poses, numFaces);
+//}
 DLLEXPORT void
 MPFaceMeshDetectorDetect2DLandmarks(MPFaceMeshDetector *detector,
                                     cv::Point2f **multi_face_landmarks,
@@ -317,9 +394,15 @@ const std::string MPFaceMeshDetector::graphConfig = R"pb(
 # Input image. (ImageFrame)
 input_stream: "input_video"
 
+# Camera calibration Matrix.
+# input_stream: "camera_matrix"
+
+# Real-time frame per second.
+input_stream: "fps"
+
 # Collection of detected/processed faces, each represented as a list of
 # landmarks. (std::vector<NormalizedLandmarkList>)
-output_stream: "multi_face_landmarks"
+output_stream: "filtered_multi_face_landmarks"
 
 # Detected faces count. (int)
 output_stream: "face_count"
@@ -327,6 +410,10 @@ output_stream: "face_count"
 # Regions of interest calculated based on landmarks.
 # (std::vector<NormalizedRect>)
 output_stream: "face_rects_from_landmarks"
+
+# A vector of face pose data.
+# std::vector<Eigen::Matrix4f>
+#output_stream: "multi_face_poses"
 
 node {
   calculator: "FlowLimiterCalculator"
@@ -408,6 +495,43 @@ node {
   output_stream: "DETECTIONS:face_detections"
   output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
   output_stream: "FACE_COUNT_FROM_LANDMARKS:face_count"
+  output_stream: "IMAGE_SIZE:image_size"
+  output_side_packet: "ENVIRONMENT:environment"
 }
+
+# Applies smoothing to a face landmark list. The filter options were handpicked
+# to achieve better visual results.
+node {
+  calculator: "MultiFaceLandmarksSmoothingCalculator"
+  input_stream: "NORM_MULTI_FACE_LANDMARKS:multi_face_landmarks"
+  input_stream: "IMAGE_SIZE:image_size"
+  input_stream: "FPS:fps"
+  output_stream: "NORM_FILTERED_MULTI_FACE_LANDMARKS:filtered_multi_face_landmarks"
+  node_options: {
+    [type.googleapis.com/mediapipe.LandmarksSmoothingCalculatorOptions] {
+      velocity_filter: {
+        window_size: $window_size_param
+        velocity_scale: $velocity_scale_param
+      }
+    }
+  }
+}
+
+# Extracts face geometry for multiple faces from a vector of face landmark
+# lists.
+#node {
+#  calculator: "FaceGeometryPipelineCalculatorWithPoseOutput"
+#  input_side_packet: "ENVIRONMENT:environment"
+#  input_side_packet: "WITH_ATTENTION:with_attention"
+#  input_stream: "CAMERA_MATRIX:camera_matrix"
+#  input_stream: "IMAGE_SIZE:image_size"
+#  input_stream: "MULTI_FACE_LANDMARKS:filtered_multi_face_landmarks"
+#  output_stream: "MULTI_FACE_POSES:multi_face_poses"
+#  options: {
+#    [mediapipe.FaceGeometryPipelineCalculatorOptions.ext] {
+#      metadata_path: "$geometryPipelineMetadataLandmarksPath"
+#    }
+#  }
+#}
 
 )pb";

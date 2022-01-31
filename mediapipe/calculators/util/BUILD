@@ -935,6 +935,24 @@ cc_library(
     alwayslink = 1,
 )
 
+cc_library(
+    name = "multi_face_landmarks_smoothing_calculator",
+    srcs = ["multi_face_landmarks_smoothing_calculator.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":landmarks_smoothing_calculator_cc_proto",
+        "//mediapipe/framework:calculator_framework",
+        "//mediapipe/framework:timestamp",
+        "//mediapipe/framework/formats:landmark_cc_proto",
+        "//mediapipe/framework/formats:rect_cc_proto",
+        "//mediapipe/framework/port:ret_check",
+        "//mediapipe/util/filtering:one_euro_filter",
+        "//mediapipe/util/filtering:relative_velocity_filter_with_fps_input",
+        "@com_google_absl//absl/algorithm:container",
+    ],
+    alwayslink = 1,
+)
+
 mediapipe_proto_library(
     name = "visibility_smoothing_calculator_proto",
     srcs = ["visibility_smoothing_calculator.proto"],

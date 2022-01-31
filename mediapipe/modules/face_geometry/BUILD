@@ -135,3 +135,25 @@ cc_library(
     ],
     alwayslink = 1,
 )
+
+cc_library(
+    name = "geometry_pipeline_calculator_with_pose_output",
+    srcs = ["geometry_pipeline_calculator_with_pose_output.cc"],
+    deps = [
+        ":geometry_pipeline_calculator_cc_proto",
+        "//mediapipe/framework:calculator_framework",
+        "//mediapipe/framework/formats:landmark_cc_proto",
+        "//mediapipe/framework/port:logging",
+        "//mediapipe/framework/port:ret_check",
+        "//mediapipe/framework/port:status",
+        "//mediapipe/framework/port:statusor",
+        "//mediapipe/modules/face_geometry/libs:geometry_pipeline_with_attention",
+        "//mediapipe/modules/face_geometry/libs:validation_utils",
+        "//mediapipe/modules/face_geometry/protos:environment_cc_proto",
+        "//mediapipe/modules/face_geometry/protos:face_geometry_cc_proto",
+        "//mediapipe/modules/face_geometry/protos:geometry_pipeline_metadata_cc_proto",
+        "//mediapipe/util:resource_util",
+        "@com_google_absl//absl/memory",
+    ],
+    alwayslink = 1,
+)
