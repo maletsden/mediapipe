@@ -6,6 +6,7 @@
 
 #include "mediapipe/calculators/core/flow_limiter_calculator.h"
 #include "mediapipe/calculators/core/begin_loop_calculator.h"
+#include "mediapipe/calculators/core/constant_side_packet_calculator.h"
 #include "mediapipe/calculators/core/clip_vector_size_calculator.h"
 #include "mediapipe/calculators/core/end_loop_calculator.h"
 #include "mediapipe/calculators/core/gate_calculator.h"
@@ -23,6 +24,7 @@
 
 #include "mediapipe/calculators/tflite/tflite_model_calculator.h"
 #include "mediapipe/calculators/tflite/ssd_anchors_calculator.h"
+#include "mediapipe/calculators/tflite/tflite_custom_op_resolver_calculator.h"
 
 #include "mediapipe/calculators/util/local_file_contents_calculator.h"
 #include "mediapipe/calculators/util/association_norm_rect_calculator.h"
@@ -36,15 +38,22 @@
 #include "mediapipe/calculators/util/thresholding_calculator.h"
 #include "mediapipe/calculators/util/landmarks_to_detection_calculator.h"
 #include "mediapipe/calculators/util/to_image_calculator.h"
+#include "mediapipe/calculators/util/landmarks_refinement_calculator.h"
 
 #include "mediapipe/framework/stream_handler/in_order_output_stream_handler.h"
 #include "mediapipe/framework/stream_handler/default_input_stream_handler.h"
 #include "mediapipe/framework/stream_handler/immediate_input_stream_handler.h"
+#include "mediapipe/framework/tool/switch_container.h"
 
+//#include "mediapipe/modules/face_geometry/env_generator_calculator.h"
+//#include "mediapipe/modules/face_geometry/geometry_pipeline_calculator_with_pose_output.h"
+#include "mediapipe/calculators/util/multi_face_landmarks_smoothing_calculator.h"
 
 namespace face_mesh_graph {
   void staticLinkAllCalculators() {
     typeid(::mediapipe::FlowLimiterCalculator);
+    typeid(::mediapipe::ConstantSidePacketCalculator);
+    typeid(::mediapipe::TfLiteCustomOpResolverCalculator);
     typeid(::mediapipe::BeginLoopDetectionCalculator);
     typeid(::mediapipe::BeginLoopNormalizedRectCalculator);
     typeid(::mediapipe::ClipNormalizedRectVectorSizeCalculator);
@@ -81,22 +90,35 @@ namespace face_mesh_graph {
     typeid(::mediapipe::ThresholdingCalculator);
     typeid(::mediapipe::LandmarksToDetectionCalculator);
     typeid(::mediapipe::ToImageCalculator);
+    typeid(::mediapipe::api2::LandmarksRefinementCalculator);
 
     typeid(::mediapipe::InOrderOutputStreamHandler);
     typeid(::mediapipe::DefaultInputStreamHandler);
     typeid(::mediapipe::ImmediateInputStreamHandler);
-
-
+    typeid(::mediapipe::tool::SwitchContainer);
+    
+  //  typeid(::mediapipe::FaceGeometryEnvGeneratorCalculator);
+  //  typeid(::mediapipe::FaceGeometryPipelineCalculatorWithPoseOutput);
+    typeid(::mediapipe::MultiFaceLandmarksSmoothingCalculator);
   }
 
-  const std::string graphConfig = R"pb(
+std::string graphConfig = R"pb(
 # MediaPipe graph that performs face mesh with TensorFlow Lite on CPU.
 
 # Input image. (ImageFrame)
 input_stream: "input_video"
 
+# Camera calibration Matrix.
+# input_stream: "camera_matrix"
+
+# Real-time frame per second.
+input_stream: "fps"
+
 # Max number of faces to detect/process. (int)
 input_side_packet: "num_faces"
+
+# Whether to run face mesh model with attention on lips and eyes. (bool)
+input_side_packet: "with_attention"
 
 # Path to face detection model. (string)
 input_side_packet: "face_detection_model_path"
@@ -106,7 +128,7 @@ input_side_packet: "face_landmark_model_path"
 
 # Collection of detected/processed faces, each represented as a list of
 # landmarks. (std::vector<NormalizedLandmarkList>)
-output_stream: "multi_face_landmarks"
+output_stream: "filtered_multi_face_landmarks"
 
 # Detected faces count. (int)
 output_stream: "face_count"
@@ -114,6 +136,10 @@ output_stream: "face_count"
 # Regions of interest calculated based on landmarks.
 # (std::vector<NormalizedRect>)
 output_stream: "face_rects_from_landmarks"
+
+# A vector of face pose data.
+# std::vector<Eigen::Matrix4f>
+#output_stream: "multi_face_poses"
 
 node {
   calculator: "FlowLimiterCalculator"
@@ -145,8 +171,6 @@ node {
     output_side_packet: "MODEL:face_landmark_model"
 }
 
-
-
 # Determines if an input vector of NormalizedRect has a size greater than or
 # equal to the provided num_faces.
 node {
@@ -155,6 +179,7 @@ node {
   input_side_packet: "num_faces"
   output_stream: "prev_has_enough_faces"
 }
+
 # Drops the incoming image if FaceLandmarkCpu was able to identify face presence
 # in the previous image. Otherwise, passes the incoming image through to trigger
 # a new round of face detection in FaceDetectionShortRangeCpu.
@@ -463,14 +488,22 @@ node: {
   }
 }
 
+# Generates a single side packet containing a TensorFlow Lite op resolver that
+# supports custom ops needed by the model used in this graph.
+node {
+  calculator: "TfLiteCustomOpResolverCalculator"
+  output_side_packet: "op_resolver"
+}
+
 # Runs a TensorFlow Lite model on CPU that takes an image tensor and outputs a
 # vector of tensors representing, for instance, detection boxes/keypoints and
 # scores.
 node {
   calculator: "InferenceCalculator"
   input_stream: "TENSORS:face_landmark_side_model_cpu__input_tensors"
-  output_stream: "TENSORS:face_landmark_side_model_cpu__output_tensors"
   input_side_packet: "MODEL:face_landmark_model"
+  input_side_packet: "CUSTOM_OP_RESOLVER:op_resolver"
+  output_stream: "TENSORS:face_landmark_side_model_cpu__output_tensors"
   options {
     [mediapipe.InferenceCalculatorOptions.ext] {
       delegate { tflite {} }
@@ -478,19 +511,7 @@ node {
   }
 }
 
-# Splits a vector of tensors into multiple vectors.
-node {
-  calculator: "SplitTensorVectorCalculator"
-  input_stream: "face_landmark_side_model_cpu__output_tensors"
-  output_stream: "face_landmark_side_model_cpu__landmark_tensors"
-  output_stream: "face_landmark_side_model_cpu__face_flag_tensor"
-  options: {
-    [mediapipe.SplitVectorCalculatorOptions.ext] {
-      ranges: { begin: 0 end: 1 }
-      ranges: { begin: 1 end: 2 }
-    }
-  }
-}
+$SplitTensorVectorCalculator
 
 # Converts the face-flag tensor into a float that represents the confidence
 # score of face presence.
@@ -528,18 +549,7 @@ node {
 
 # Decodes the landmark tensors into a vector of landmarks, where the landmark
 # coordinates are normalized by the size of the input image to the model.
-node {
-  calculator: "TensorsToLandmarksCalculator"
-  input_stream: "TENSORS:face_landmark_side_model_cpu__ensured_landmark_tensors"
-  output_stream: "NORM_LANDMARKS:face_landmark_side_model_cpu__landmarks"
-  options: {
-    [mediapipe.TensorsToLandmarksCalculatorOptions.ext] {
-      num_landmarks: 468
-      input_image_width: 192
-      input_image_height: 192
-    }
-  }
-}
+$TensorsToLandmarksSubgraph
 
 # Projects the landmarks from the cropped face image to the corresponding
 # locations on the full image before cropping (input to the graph).
@@ -550,24 +560,16 @@ node {
   output_stream: "NORM_LANDMARKS:face_landmarks"
 }
 
-
 # ------ FaceLandmarkSideModelCpu End ------ #
-
-
 
 # ------ FaceLandmarksToRoi Start ------ #
 
-
-# Converts face landmarks to a detection that tightly encloses all landmarks.
 node {
   calculator: "LandmarksToDetectionCalculator"
   input_stream: "NORM_LANDMARKS:face_landmarks"
   output_stream: "DETECTION:face_landmarks_to_roi__face_detection"
 }
 
-# Converts the face detection into a rectangle (normalized by image size)
-# that encloses the face and is rotated such that the line connecting left side
-# of the left eye and right side of the right eye is aligned with the X-axis of
 # the rectangle.
 node {
   calculator: "DetectionsToRectsCalculator"
@@ -583,8 +585,6 @@ node {
   }
 }
 
-# Expands the face rectangle so that in the next video image it's likely to
-# still contain the face even with some motion.
 node {
   calculator: "RectTransformationCalculator"
   input_stream: "NORM_RECT:face_landmarks_to_roi__face_rect_from_landmarks"
@@ -602,10 +602,6 @@ node {
 
 # ------ FaceLandmarksToRoi End ------ #
 
-
-# Collects a set of landmarks for each face into a vector. Upon receiving the
-# BATCH_END timestamp, outputs the vector of landmarks at the BATCH_END
-# timestamp.
 node {
   calculator: "EndLoopNormalizedLandmarkListVectorCalculator"
   input_stream: "ITEM:face_landmarks"
@@ -613,9 +609,6 @@ node {
   output_stream: "ITERABLE:multi_face_landmarks"
 }
 
-# Collects a NormalizedRect for each face into a vector. Upon receiving the
-# BATCH_END timestamp, outputs the vector of NormalizedRect at the BATCH_END
-# timestamp.
 node {
   calculator: "EndLoopNormalizedRectCalculator"
   input_stream: "ITEM:face_rect_from_landmarks"
@@ -623,11 +616,6 @@ node {
   output_stream: "ITERABLE:face_rects_from_landmarks"
 }
 
-# Caches face rects calculated from landmarks, and upon the arrival of the next
-# input image, sends out the cached rects with timestamps replaced by that of
-# the input image, essentially generating a packet that carries the previous
-# face rects. Note that upon the arrival of the very first input image, a
-# timestamp bound update occurs to jump start the feedback loop.
 node {
   calculator: "PreviousLoopbackCalculator"
   input_stream: "MAIN:input_video"
@@ -639,7 +627,23 @@ node {
   output_stream: "PREV_LOOP:prev_face_rects_from_landmarks"
 }
 
-
+# Applies smoothing to a face landmark list. The filter options were handpicked
+# to achieve better visual results.
+node {
+  calculator: "MultiFaceLandmarksSmoothingCalculator"
+  input_stream: "NORM_MULTI_FACE_LANDMARKS:multi_face_landmarks"
+  input_stream: "IMAGE_SIZE:image_size"
+  input_stream: "FPS:fps"
+  output_stream: "NORM_FILTERED_MULTI_FACE_LANDMARKS:filtered_multi_face_landmarks"
+  node_options: {
+    [type.googleapis.com/mediapipe.LandmarksSmoothingCalculatorOptions] {
+      velocity_filter: {
+        window_size: $window_size_param
+        velocity_scale: $velocity_scale_param
+      }
+    }
+  }
+}
 )pb";
 }
 
