@@ -62,6 +62,18 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "relative_velocity_filter_with_fps_input",
+    srcs = ["relative_velocity_filter_with_fps_input.cc"],
+    hdrs = ["relative_velocity_filter_with_fps_input.h"],
+    deps = [
+        ":low_pass_filter",
+        "//mediapipe/framework/port:logging",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/time",
+    ],
+)
+
 cc_test(
     name = "relative_velocity_filter_test",
     srcs = ["relative_velocity_filter_test.cc"],
